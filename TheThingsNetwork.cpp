@@ -297,6 +297,11 @@ TheThingsNetwork::TheThingsNetwork(Stream &modemStream, Stream &debugStream, ttn
   this->fp = fp;
   this->sf = sf;
   this->fsb = fsb;
+  this->adr = false;
+  this->messageCallback = NULL;
+  this->beforeTxCallback = NULL;
+  this->afterTxCallback = NULL;
+  this->afterRxCallback = NULL;
 }
 
 size_t TheThingsNetwork::getAppEui(char *buffer, size_t size)
@@ -459,6 +464,8 @@ void TheThingsNetwork::saveState()
   sendCommand(MAC_TABLE, MAC_PREFIX, true);
   sendCommand(MAC_TABLE, MAC_SAVE, false);
   modemStream->write(SEND_MSG);
+  if (beforeTxCallback)
+	  beforeTxCallback();
   debugPrintLn();
   waitForOk();
 }
@@ -466,6 +473,21 @@ void TheThingsNetwork::saveState()
 void TheThingsNetwork::onMessage(void (*cb)(const uint8_t *payload, size_t size, port_t port))
 {
   messageCallback = cb;
+}
+
+void TheThingsNetwork::onBeforeTx(void (*cb)(void))
+{
+  beforeTxCallback = cb;
+}
+
+void TheThingsNetwork::onAfterTx(void (*cb)(void))
+{
+  afterTxCallback = cb;
+}
+
+void TheThingsNetwork::onAfterRx(void (*cb)(void))
+{
+  afterRxCallback = cb;
 }
 
 bool TheThingsNetwork::personalize(const char *devAddr, const char *nwkSKey, const char *appSKey)
@@ -593,14 +615,18 @@ ttn_response_t TheThingsNetwork::sendBytes(const uint8_t *payload, size_t length
     return TTN_ERROR_SEND_COMMAND_FAILED;
   }
 
-  readLine(buffer, sizeof(buffer));
+  readLine(buffer, sizeof(buffer)); // Read response
+  if (afterRxCallback)
+	  afterRxCallback();
 
+  // TX only?
   if (pgmstrcmp(buffer, CMP_MAC_TX_OK) == 0)
   {
     debugPrintMessage(SUCCESS_MESSAGE, SCS_SUCCESSFUL_TRANSMISSION);
     return TTN_SUCCESSFUL_TRANSMISSION;
   }
 
+  // Received downlink message?
   if (pgmstrcmp(buffer, CMP_MAC_RX) == 0)
   {
     port_t downlinkPort = receivedPort(buffer + 7);
@@ -674,6 +700,7 @@ ttn_response_t TheThingsNetwork::poll(port_t port, bool confirm)
         return TTN_SUCCESSFUL_RECEIVE;
       }
     }
+    // no break
 
   default:
     return TTN_UNSUCESSFUL_RECEIVE;
@@ -708,8 +735,8 @@ void TheThingsNetwork::configureEU868()
   uint8_t ch;
   for (ch = 0; ch < 8; ch++)
   {
-    sendChSet(MAC_CHANNEL_DCYCLE, ch, "799");
-    if (ch > 2)
+    sendChSet(MAC_CHANNEL_DCYCLE, ch, "799"); // 1.25%
+    if (ch > 2) 							  // chn 0-2 are default
     {
       sprintf(buf, "%lu", freq);
       sendChSet(MAC_CHANNEL_FREQ, ch, buf);
@@ -932,6 +959,7 @@ bool TheThingsNetwork::setSF(uint8_t sf)
   case TTN_FP_AS920_923:
   case TTN_FP_AS923_925:
   case TTN_FP_KR920_923:
+  default:
     dr = 12 - sf;
     break;
   case TTN_FP_US915:
@@ -995,6 +1023,8 @@ bool TheThingsNetwork::sendMacSet(uint8_t index, const char *value)
   sendCommand(MAC_GET_SET_TABLE, index, true);
   modemStream->write(value);
   modemStream->write(SEND_MSG);
+  if (beforeTxCallback)
+	  beforeTxCallback();
   debugPrintLn(value);
   return waitForOk();
 }
@@ -1002,6 +1032,8 @@ bool TheThingsNetwork::sendMacSet(uint8_t index, const char *value)
 bool TheThingsNetwork::waitForOk()
 {
   readLine(buffer, sizeof(buffer));
+  if (afterTxCallback)
+	  afterTxCallback();
   if (pgmstrcmp(buffer, CMP_OK) != 0)
   {
     debugPrintMessage(ERR_MESSAGE, ERR_RESPONSE_IS_NOT_OK, buffer);
@@ -1034,6 +1066,8 @@ bool TheThingsNetwork::sendChSet(uint8_t index, uint8_t channel, const char *val
   modemStream->write(" ");
   modemStream->write(value);
   modemStream->write(SEND_MSG);
+  if (beforeTxCallback)
+	  beforeTxCallback();
   debugPrint(channel);
   debugPrint(F(" "));
   debugPrintLn(value);
@@ -1048,6 +1082,8 @@ bool TheThingsNetwork::sendJoinSet(uint8_t type)
   sendCommand(MAC_TABLE, MAC_JOIN, true);
   sendCommand(MAC_JOIN_TABLE, type, false);
   modemStream->write(SEND_MSG);
+  if (beforeTxCallback)
+	  beforeTxCallback();
   debugPrintLn();
   return waitForOk();
 }
@@ -1099,6 +1135,8 @@ bool TheThingsNetwork::sendPayload(uint8_t mode, uint8_t port, uint8_t *payload,
     }
   }
   modemStream->write(SEND_MSG);
+  if (beforeTxCallback)
+	  beforeTxCallback();
   debugPrintLn();
   return waitForOk();
 }
@@ -1136,6 +1174,8 @@ void TheThingsNetwork::linkCheck(uint16_t seconds)
   sprintf(buffer, "%u", seconds);
   modemStream->write(buffer);
   modemStream->write(SEND_MSG);
+  if (beforeTxCallback)
+	  beforeTxCallback();
   debugPrintLn(buffer);
   waitForOk();
 }

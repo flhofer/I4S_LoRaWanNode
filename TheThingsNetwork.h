@@ -67,6 +67,9 @@ private:
   char buffer[512];
   bool baudDetermined = false;
   void (*messageCallback)(const uint8_t *payload, size_t size, port_t port);
+  void (*beforeTxCallback)(void);
+  void (*afterTxCallback)(void);
+  void (*afterRxCallback)(void);
   lorawan_class_t lw_class = CLASS_A;
 
   void clearReadBuffer();
@@ -107,6 +110,9 @@ public:
   size_t getAppEui(char *buffer, size_t size);
   uint16_t getVDD();
   void onMessage(void (*cb)(const uint8_t *payload, size_t size, port_t port));
+  void onBeforeTx(void (*cb)(void));
+  void onAfterTx(void (*cb)(void));
+  void onAfterRx(void (*cb)(void));
   bool provision(const char *appEui, const char *appKey);
   bool join(const char *appEui, const char *appKey, int8_t retries = -1, uint32_t retryDelay = 10000, lorawan_class_t = CLASS_A);
   bool join(int8_t retries = -1, uint32_t retryDelay = 10000);
@@ -124,6 +130,3 @@ public:
 };
 
 #endif
-
-//Added by Sloeber 
-#pragma once
