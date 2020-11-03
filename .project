@@ -41,5 +41,10 @@
 			<type>2</type>
 			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/arduino/hardware/avr/1.8.3/variants/leonardo</locationURI>
 		</link>
+		<link>
+			<name>libraries/TheThingsNetwork</name>
+			<type>2</type>
+			<location>/Users/florianhofer/Documents/Arduino/libraries/TheThingsNetwork</location>
+		</link>
 	</linkedResources>
 </projectDescription>
