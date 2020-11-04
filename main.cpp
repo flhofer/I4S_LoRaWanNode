@@ -14,42 +14,95 @@
 
 uint8_t EEMEM ee_bootCnt;	// reboot counter
 
-// TODO: hide test state from globals
-int tno = 0,
-	tgrp = 0;
-
 int debug = 1;
-
-
-/*************** TEST FUNCTION CALL ********************/
-
-static int
-Ainit(){
-
-	return 0;
-}
-
-/*************** TEST CONFIGURATIONS ********************/
 
 // Test data structure
 typedef struct _testParam{
-	unsigned long *resutls;
-	size_t resutlsSize;
+	unsigned long *results;
+	size_t resultsSize;
 	int (*init)(void);
 	int (*prepare)(void);
 	int (*run)(void);
 	int (*stop)(void);
-	int (*evaluate)(void);
+	int (*evaluate)(struct _testParam * testNow);
 } testParam_t;
+
+/*************** TEST FUNCTION CALL ********************/
+
+static int nr =0;
+static char grp ='A';
+
+static int testnr(){
+	debugSerial.print("Test run step ");
+	debugSerial.println(++nr);
+	return 0;
+}
+
+static int testend(testParam_t * testNow){
+
+	debugSerial.print("Test end step ");
+	debugSerial.print(++nr);
+	debugSerial.print(" Group ");
+	debugSerial.println((char)(grp++));
+	nr=0;
+	return 0;
+}
+
+static int
+Ainit(){
+
+	// Setup channels to MonoChannel
+	debugSerial.println("Init - channel config");
+	return 0;
+}
+
+static int
+Aeval(testParam_t * testNow){
+	debugSerial.println("Evaluate - add measurement");
+
+	if (!realloc(testNow->results, (testNow->resultsSize+1) * sizeof(unsigned long) )){
+		debugSerial.println("realloc error!");
+		return -1;
+	}
+
+	testNow->results[testNow->resultsSize] = LoRaMgmtGetTime();
+	testNow->resultsSize++;
+
+	return 0;
+}
+
+
+/*************** TEST CONFIGURATIONS ********************/
+
+
+// Test definition
+testParam_t AtestA1 = {
+	NULL, 0,
+	&testnr,
+	&testnr,
+	NULL,
+	&testnr,
+	&testend,
+};
+
+testParam_t AtestA2 = {
+	NULL, 0,
+	&testnr,
+	&testnr,
+	&testnr,
+	&testnr,
+	&testend,
+};
+
 
 // Test definition
 testParam_t testA1 = {
 	NULL, 0,
 	&Ainit,
+	&LoRaMgmtSendConf,
+	&LoRaMgmtPoll,
 	NULL,
-	NULL,
-	NULL,
-	NULL
+	&Aeval,
 };
 
 testParam_t testA2 = {
@@ -63,16 +116,19 @@ testParam_t testA2 = {
 
 // Test group definition
 testParam_t * testGrpA[] = {
-		&testA1,
-		&testA2,
+		&AtestA1,
+		&AtestA2,
 		NULL // Terminator for automatic sizing
 };
 
 testParam_t * testGrpB[] = {
+		&AtestA1,
 		NULL // Terminator for automatic sizing
 };
 
 testParam_t * testGrpC[] = {
+		&AtestA2,
+		&AtestA1,
 		NULL // Terminator for automatic sizing
 };
 
@@ -114,12 +170,13 @@ runTest(testParam_t * testNow){
 		return rError;
 	}
 
+	int ret = 0;
 	switch(tstate){
 
 	case rInit:
 
 		if (testNow->init)
-			if (testNow->init())
+			if ((ret = testNow->init()))
 				break;
 
 		tstate = rPrepare;
@@ -128,8 +185,9 @@ runTest(testParam_t * testNow){
 
 	case rPrepare:
 
-		if (testNow->prepare())
-			if (testNow->prepare())
+		if (testNow->prepare)
+			if ((ret = testNow->prepare())
+					&& ret != 1) // skip if busy
 				break;
 
 		tstate = rRun;
@@ -138,8 +196,8 @@ runTest(testParam_t * testNow){
 
 	case rRun:
 
-		if (testNow->run())
-			if (testNow->run())
+		if (testNow->run)
+			if ((ret = testNow->run()))
 				break;
 
 		tstate = rStop;
@@ -147,8 +205,8 @@ runTest(testParam_t * testNow){
 		// fall-through
 
 	case rStop:
-		if (testNow->stop())
-			if (testNow->stop())
+		if (testNow->stop)
+			if ((ret = testNow->stop()))
 				break;
 
 		tstate = rEvaluate;
@@ -156,8 +214,8 @@ runTest(testParam_t * testNow){
 		// fall-through
 
 	case rEvaluate:
-		if (testNow->evaluate())
-			if (testNow->evaluate())
+		if (testNow->evaluate)
+			if ((ret = testNow->evaluate(testNow)))
 				break;
 
 		tstate = rEnd;
@@ -168,8 +226,17 @@ runTest(testParam_t * testNow){
 		;
 	}
 
+	if (ret == rError ){
+		debugSerial.println("Error during state execution");
+		tstate = rEnd;
+	}
+
 	return tstate;
 }
+
+// TODO: hide test state from globals
+testParam_t ** tno = NULL,
+			*** tgrp = NULL;
 
 /*
  * selectTest: test organization and selection
@@ -181,7 +248,35 @@ runTest(testParam_t * testNow){
 static void
 selectTest(){
 
-	runTest(NULL);
+	// end of tests groups?
+	if (!*tgrp){
+		debugSerial.println("End of test groups");
+
+		while(1); // END PROGRAM HERE
+		return;
+	}
+
+	enum testRun res = runTest(*tno);
+
+	if (res == rError)
+		debugSerial.println("ERROR: test malfunction");
+
+	// test ended
+	if ((res == rEnd || res == rError) && *tno){
+		debugSerial.println("Skip to next test ");
+		tno++;
+		tstate = rInit; // TODO: fix internal
+	}
+
+	// end of tests of test group?
+	if (!*tno){
+		if (*tgrp){
+			tgrp++; // next test group
+			tno = *tgrp;
+			debugSerial.println("Skip to next test group ");
+		}
+	}
+
 
 }
 
@@ -220,8 +315,10 @@ void setup()
 //			eeprom_update_byte(&ee_bootCnt, ++val);
 //		}
 
-	LoRaMgmtSetup();
+	//LoRaMgmtSetup();
 
+	tgrp = &testConfig[0]; 	// assign pointer to pointer to TestgroupA
+	tno = *tgrp; 			// assign pointer to pointer to test 1
 }
 
 void loop()
