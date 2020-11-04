@@ -14,31 +14,35 @@
 
 uint8_t EEMEM ee_bootCnt;	// reboot counter
 
+// TODO: hide test state from globals
 int tno = 0,
-	tgrp = 0,
-	tstate = 0;
+	tgrp = 0;
 
 int debug = 1;
 
 
-/*************** TEST CONFIGURATIONS ********************/
+/*************** TEST FUNCTION CALL ********************/
 
-void Ainit(){
+static int
+Ainit(){
 
+	return 0;
 }
 
 /*************** TEST CONFIGURATIONS ********************/
 
+// Test data structure
 typedef struct _testParam{
 	unsigned long *resutls;
 	size_t resutlsSize;
-	void (*init)(void);
-	void (*prepare)(void);
-	void (*run)(void);
-	void (*stop)(void);
-	void (*evaluate)(void);
+	int (*init)(void);
+	int (*prepare)(void);
+	int (*run)(void);
+	int (*stop)(void);
+	int (*evaluate)(void);
 } testParam_t;
 
+// Test definition
 testParam_t testA1 = {
 	NULL, 0,
 	&Ainit,
@@ -57,6 +61,7 @@ testParam_t testA2 = {
 	NULL
 };
 
+// Test group definition
 testParam_t * testGrpA[] = {
 		&testA1,
 		&testA2,
@@ -71,6 +76,7 @@ testParam_t * testGrpC[] = {
 		NULL // Terminator for automatic sizing
 };
 
+// All tests grouped
 testParam_t **testConfig[] = { // array of testParam_t**
 		testGrpA, // array of testParam_t* (by reference), pointer to first testParam_t* in array
 		testGrpB,
@@ -80,50 +86,106 @@ testParam_t **testConfig[] = { // array of testParam_t**
 
 /*************** TEST MANAGEMENT FUNCTIONS*****************/
 
-enum testRun { 	rInit,
+
+// Enumeration for test status
+enum testRun { 	rError = -1,
+				rInit = 0,
 				rPrepare,
 				rRun,
 				rStop,
-				rEvaluate
+				rEvaluate,
+				rEnd = 10
 			};
 
+enum testRun tstate = rInit;
 
-void runTest(int maxTest){
+/*
+ * runTest: test runner
+ *
+ * Arguments: - pointer to test structure of actual test
+ *
+ * Return:	  - test run enumeration status
+ */
+static enum testRun
+runTest(testParam_t * testNow){
+
+	if (!testNow){
+		debugSerial.println("WARN: Invalid test configuration");
+		return rError;
+	}
 
 	switch(tstate){
 
 	case rInit:
 
-		tstate++;
-		break;
+		if (testNow->init)
+			if (testNow->init())
+				break;
+
+		tstate = rPrepare;
+		// no break
+		// fall-through
 
 	case rPrepare:
 
-		tstate++;
-		break;
+		if (testNow->prepare())
+			if (testNow->prepare())
+				break;
+
+		tstate = rRun;
+		// no break
+		// fall-through
 
 	case rRun:
 
-		tstate++;
-		break;
+		if (testNow->run())
+			if (testNow->run())
+				break;
+
+		tstate = rStop;
+		// no break
+		// fall-through
 
 	case rStop:
+		if (testNow->stop())
+			if (testNow->stop())
+				break;
 
-		tstate++;
-		break;
+		tstate = rEvaluate;
+		// no break
+		// fall-through
 
 	case rEvaluate:
+		if (testNow->evaluate())
+			if (testNow->evaluate())
+				break;
 
-		tstate++;
-		break;
+		tstate = rEnd;
+		// no break
 
+	default:
+	case rEnd:
+		;
 	}
+
+	return tstate;
 }
 
-void selectTest(){
+/*
+ * selectTest: test organization and selection
+ *
+ * Arguments: -
+ *
+ * Return:	  -
+ */
+static void
+selectTest(){
 
+	runTest(NULL);
 
 }
+
+/*************** SYSTEM SETUP AND LOOP *****************/
 
 void initVariant(){
 	// board dependent settings for cross-compatibility
