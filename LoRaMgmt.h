@@ -11,6 +11,12 @@
 #include <Stream.h>
 
 void LoRaMgmtSetup();
-void LoRaMgmtLoop();
+
+int LoRaMgmtSendConf();
+
+int LoRaMgmtPoll();
+
+unsigned long LoRaMgmtGetTime();
+
 
 #endif /* LORAMGMT_H_ */

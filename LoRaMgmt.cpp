@@ -22,6 +22,10 @@ const char *appSKey = LORA_APSKEY;
 TheThingsNetwork ttn(loraSerial, debugSerial,
 					freqPlan, TTN_DEFAULT_SF, TTN_DEFAULT_FSB);
 
+unsigned long lastTime = 0; // store last measurement
+
+/*************** CALLBACK FUNCTIONS ********************/
+
 /*
  * onMessage: Callback function for LoraRx
  * Arguments: - Byte vector with payload
@@ -29,7 +33,7 @@ TheThingsNetwork ttn(loraSerial, debugSerial,
  * 			  - LoRaWan Port
  * Return:	  -
  */
-void onMessage(const uint8_t *payload, size_t size, port_t port){
+static void onMessage(const uint8_t *payload, size_t size, port_t port){
 	if (!debug)
 		return;
 
@@ -65,34 +69,122 @@ void onMessage(const uint8_t *payload, size_t size, port_t port){
 //    *pout = 0;
 }
 
-void onBeforeTx(){
+/*
+ * onBeforeTx: Callback function for before LoRa TX
+ * Arguments: -
+ *
+ * Return:	  -
+ */
+static void onBeforeTx(){
 	startTimer();
 }
 
-void onAfterTx(){
-	unsigned long time = getTimer();
+/*
+ * onAfterTx: Callback function for after LoRa TX
+ * Arguments: -
+ *
+ * Return:	  -
+ */
+static void onAfterTx(){
+	lastTime = getTimer();
 	if (!debug)
 		return;
 
 	debugSerial.print("Time TX: ");
-	debugSerial.print(time/1000);
+	debugSerial.print(lastTime/1000);
 	debugSerial.print(".");
-	debugSerial.print(time %1000);
+	debugSerial.print(lastTime %1000);
 	debugSerial.println(" ms");
 }
 
-void onAfterRx(){
-	unsigned long time = getTimer();
+/*
+ * onAfterTx: Callback function for after LoRa RX
+ * Arguments: -
+ *
+ * Return:	  -
+ */
+static void onAfterRx(){
+	lastTime = getTimer();
 	if (!debug)
 		return;
 
 	debugSerial.print("Time RX: ");
-	debugSerial.print(time/1000);
+	debugSerial.print(lastTime/1000);
 	debugSerial.print(".");
-	debugSerial.print(time %1000);
+	debugSerial.print(lastTime %1000);
 	debugSerial.println(" ms");
 }
 
+/*************** TEST SEND FUNCTIONS ********************/
+
+/*
+ * LoRaMgmtSendConf: send a confirmed message. If no response arrives
+ * 		within timeout, return 1 (busy)
+ *
+ * Arguments: -
+ *
+ * Return:	  status of polling, 0 ok, -1 error, 1 busy
+ */
+int LoRaMgmtSendConf(){
+
+	  // Prepare PayLoad of 1 byte to indicate LED status
+	  byte payload[1];
+	  payload[0] = (digitalRead(LED_BUILTIN) == HIGH) ? 1 : 0;
+
+	  // Send it off
+	  ttn_response_t ret = ttn.sendBytes(payload, sizeof(payload), 1, true);
+
+	  switch (ret) {
+
+		  // TX only
+	  case TTN_SUCCESSFUL_TRANSMISSION:
+		  // ACK receive ok
+	  case TTN_SUCCESSFUL_RECEIVE:
+		  return 0;
+
+	  case TTN_UNSUCESSFUL_RECEIVE:
+		  // probably busy
+		  return 1;
+
+	  default:
+	  case TTN_ERROR_SEND_COMMAND_FAILED:
+	  case TTN_ERROR_UNEXPECTED_RESPONSE:
+		  debugSerial.println("Unable to send payload!\n");
+		  return -1;
+	  }
+}
+
+/*
+ * LoRaMgmtPoll: poll function for confirmed and delayed TX
+ *
+ * Arguments: -
+ *
+ * Return:	  status of polling, 0 ok, -1 error, 1 busy
+ */
+int LoRaMgmtPoll(){
+
+
+	return 0;
+}
+
+/*************** MANAGEMENT FUNCTIONS ********************/
+
+/*
+ * LoRaMgmtGetTime: getter for last measured time
+ * Arguments: -
+ *
+ * Return:	  ulong with time in ms
+ */
+unsigned long LoRaMgmtGetTime(){
+	return lastTime;
+}
+
+/*
+ * LoRaMgmtSetup: setup LoRaWan communication with modem
+ * Arguments: -
+ *
+ * Return:	  -
+ */
 void LoRaMgmtSetup(){
 
 	installTimer(); // setup timer1 registers
@@ -111,17 +203,6 @@ void LoRaMgmtSetup(){
 
 	debugSerial.println("-- STATUS");
 	ttn.showStatus();
-
 }
 
-void LoRaMgmtLoop(){
 
-	  // Prepare PayLoad of 1 byte to indicate LED status
-	  byte payload[1];
-	  payload[0] = (digitalRead(LED_BUILTIN) == HIGH) ? 1 : 0;
-
-	  // Send it off
-	  if (TTN_SUCCESSFUL_TRANSMISSION != ttn.sendBytes(payload, sizeof(payload), 1, true))
-		  debugSerial.println("Unable to send payload!\n");
-
-}
