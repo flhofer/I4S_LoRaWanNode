@@ -8,11 +8,9 @@
 #ifndef LORAMGMT_H_
 #define LORAMGMT_H_
 
-#include <Stream.h>
-
 void LoRaMgmtSetup();
 
-int LoRaMgmtSendConf();
+int LoRaMgmtSend();
 
 int LoRaMgmtPoll();
 

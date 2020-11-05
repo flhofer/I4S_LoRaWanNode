@@ -23,6 +23,8 @@ TheThingsNetwork ttn(loraSerial, debugSerial,
 					freqPlan, TTN_DEFAULT_SF, TTN_DEFAULT_FSB);
 
 unsigned long lastTime = 0; // store last measurement
+bool conf = false;
+
 
 /*************** CALLBACK FUNCTIONS ********************/
 
@@ -125,14 +127,14 @@ static void onAfterRx(){
  *
  * Return:	  status of polling, 0 ok, -1 error, 1 busy
  */
-int LoRaMgmtSendConf(){
+int LoRaMgmtSend(){
 
 	  // Prepare PayLoad of 1 byte to indicate LED status
 	  byte payload[1];
 	  payload[0] = (digitalRead(LED_BUILTIN) == HIGH) ? 1 : 0;
 
 	  // Send it off
-	  ttn_response_t ret = ttn.sendBytes(payload, sizeof(payload), 1, true);
+	  ttn_response_t ret = ttn.sendBytes(payload, sizeof(payload), 1, conf);
 
 	  switch (ret) {
 
@@ -162,7 +164,28 @@ int LoRaMgmtSendConf(){
  * Return:	  status of polling, 0 ok, -1 error, 1 busy
  */
 int LoRaMgmtPoll(){
+	delay(3000); // pause a second
 
+	ttn_response_t ret = ttn.poll(1, conf);
+
+	switch (ret) {
+
+	  // ACK receive ok
+	case TTN_SUCCESSFUL_RECEIVE:
+	  return 0;
+
+	case TTN_UNSUCESSFUL_RECEIVE:
+	case TTN_ERROR_SEND_COMMAND_FAILED:
+	  // probably busy
+	  return 1;
+
+	default:
+	  // TX only
+	case TTN_SUCCESSFUL_TRANSMISSION:
+	case TTN_ERROR_UNEXPECTED_RESPONSE:
+	  debugSerial.println("Unable to send payload!\n");
+	  return -1;
+	}
 
 	return 0;
 }
