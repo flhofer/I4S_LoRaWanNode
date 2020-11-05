@@ -6,7 +6,7 @@ This is just one component of the I4S family. To exlore all components, browse t
 
 ## Project setup
 
-The project is build on the Arduino core to ease development and speed-up results. It has been integrated in *Eclipse CDT* with the *Sloeber* pluging to allow standard C/C++ development without loosing the advantage of premade _Serial_ and _I/O_ classes.
+The project is build on the Arduino core to ease development and speed-up results. It has been integrated in *Eclipse CDT* with the *Sloeber* plugin to allow standard C/C++ development without loosing the advantage of premade _Serial_ and _I/O_ classes. Future versions my factor out the Arduino source and rely merely on the AVR standard library. 
 
 ## Project structure
 
@@ -16,4 +16,3 @@ All core and library folders are supplied by Sloeber.
 - _TheThingsNetwork.*_		Interfacing class for the RN2483 LoRaWan module, modified from the TTN supplied solution
 - _timer.*_		Hardware based timer routines to measure air-time.
 - _LoRaMgmt.*_		routines to manage the test-depending LoRa communication
-
