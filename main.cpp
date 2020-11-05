@@ -23,7 +23,7 @@ typedef struct _testParam{
 	int counter;			// How many times to repeat
 	int syncCode;			// DO sync code with jamming devices
 	int (*init)(void);		// Hardware and RF preparation code
-	int (*prepare)(void);	// Start of test
+	int (*start)(void);		// Start of test
 	int (*run)(void);		// dwelling status, i.e., wait for resutls
 	int (*stop)(void);		// closing state
 	int (*evaluate)(struct _testParam * testNow);	// Computation of result
@@ -107,7 +107,7 @@ testParam_t **testConfig[] = { // array of testParam_t**
 // Enumeration for test status
 enum testRun { 	rError = -1,
 				rInit = 0,
-				rPrepare,
+				rStart,
 				rRun,
 				rStop,
 				rEvaluate,
@@ -157,14 +157,14 @@ runTest(testParam_t * testNow){
 
 		writeSyncState(testNow->syncCode);
 
-		tstate = rPrepare;
+		tstate = rStart;
 		// no break
 		// fall-through
 
-	case rPrepare:
+	case rStart:
 
-		if (testNow->prepare)
-			if ((ret = testNow->prepare())
+		if (testNow->start)
+			if ((ret = testNow->start())
 					&& ret != 1) // skip if busy
 				break;
 
