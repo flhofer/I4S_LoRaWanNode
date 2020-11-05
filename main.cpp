@@ -50,7 +50,7 @@ Aeval(){
 /*************** TEST CONFIGURATIONS ********************/
 
 // Test definition
-testParam_t testA1 = {
+static testParam_t testA1 = {
 	NULL, 0, 2, 0,
 	&Ainit,
 	&LoRaMgmtSend,
@@ -60,7 +60,7 @@ testParam_t testA1 = {
 	NULL,
 };
 
-testParam_t testA2 = {
+static testParam_t testA2 = {
 	NULL, 0, 0, 0,
 	&Ainit,
 	NULL,
@@ -71,22 +71,22 @@ testParam_t testA2 = {
 };
 
 // Test group definition
-testParam_t * testGrpA[] = {
+static testParam_t * testGrpA[] = {
 		&testA1,
 		&testA2,
 		NULL // Terminator for automatic sizing
 };
 
-testParam_t * testGrpB[] = {
+static testParam_t * testGrpB[] = {
 		NULL // Terminator for automatic sizing
 };
 
-testParam_t * testGrpC[] = {
+static testParam_t * testGrpC[] = {
 		NULL // Terminator for automatic sizing
 };
 
 // All tests grouped
-testParam_t **testConfig[] = { // array of testParam_t**
+static testParam_t **testConfig[] = { // array of testParam_t**
 		testGrpA, // array of testParam_t* (by reference), pointer to first testParam_t* in array
 		testGrpB,
 		testGrpC,
@@ -106,7 +106,9 @@ enum testRun { 	rError = -1,
 				rEnd = 10
 			};
 
-enum testRun tstate = rInit;
+static enum testRun tstate = rInit;
+static bool conf = false; // TOOD: implement menu and switch
+static int dataLen = 1; // TOOD: implement menu and switch
 
 /*
  * writeSyncState: set sync for companion devices
@@ -147,6 +149,9 @@ runTest(testParam_t * testNow){
 				break;
 
 		writeSyncState(testNow->syncCode);
+
+		// Set global test parameters
+		LoRaSetGblParam(conf, dataLen);
 
 		tstate = rStart;
 		// no break
@@ -228,10 +233,10 @@ runTest(testParam_t * testNow){
 }
 
 // TODO: hide test state from globals
-testParam_t ** tno = NULL,
-			*** tgrp = NULL;
+static testParam_t ** tno = NULL,
+					*** tgrp = NULL;
 
-unsigned long startTs = 0; // loop timer
+static unsigned long startTs = 0; // loop timer
 
 /*
  * selectTest: test organization and selection
