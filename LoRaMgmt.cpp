@@ -18,6 +18,7 @@ const char *appSKey = LORA_APSKEY;
 
 // Select frequency plan between TTN_FP_EU868 or TTN_FP_US915
 #define freqPlan TTN_FP_EU868
+#define MAXLORALEN	51			// maximum payload length
 
 // Modem constructor
 TheThingsNetwork ttn(loraSerial, debugSerial,
@@ -29,6 +30,23 @@ int dataLen = 1; 			// TX data length for tests
 
 
 /********************** HELPERS ************************/
+
+/*
+ * generatePayload: fills a buffer with dataLen random bytes
+ *
+ * Arguments: - Byte vector for payload
+ *
+ * Return:	  - next open position (end of buffer)
+ */
+static byte *
+generatePayload(byte *payload){
+
+	// TODO: unprotected memory
+	for (int i=0; i<dataLen; i++, payload++)
+		*payload=(byte)random(255);
+
+	return payload;
+}
 
 /*************** CALLBACK FUNCTIONS ********************/
 
@@ -133,31 +151,32 @@ static void onAfterRx(){
  */
 int LoRaMgmtSend(){
 
-	  // Prepare PayLoad of 1 byte to indicate LED status
-	  byte payload[1];
-	  payload[0] = (digitalRead(LED_BUILTIN) == HIGH) ? 1 : 0;
+	// Prepare PayLoad of x bytes
+	// TODO: remove dynamic stack
+	byte payload[dataLen];
+	(void)generatePayload(payload);
 
-	  // Send it off
-	  ttn_response_t ret = ttn.sendBytes(payload, sizeof(payload), 1, conf);
+	// Send it off
+	ttn_response_t ret = ttn.sendBytes(payload, sizeof(payload), 1, conf);
 
-	  switch (ret) {
+	switch (ret) {
 
-		  // TX only
-	  case TTN_SUCCESSFUL_TRANSMISSION:
-		  // ACK receive ok
-	  case TTN_SUCCESSFUL_RECEIVE:
-		  return 0;
+	  // TX only
+	case TTN_SUCCESSFUL_TRANSMISSION:
+	  // ACK receive ok
+	case TTN_SUCCESSFUL_RECEIVE:
+	  return 0;
 
-	  case TTN_UNSUCESSFUL_RECEIVE:
-		  // probably busy
-		  return 1;
+	case TTN_UNSUCESSFUL_RECEIVE:
+	  // probably busy
+	  return 1;
 
-	  default:
-	  case TTN_ERROR_SEND_COMMAND_FAILED:
-	  case TTN_ERROR_UNEXPECTED_RESPONSE:
-		  debugSerial.println("Unable to send payload!\n");
-		  return -1;
-	  }
+	default:
+	case TTN_ERROR_SEND_COMMAND_FAILED:
+	case TTN_ERROR_UNEXPECTED_RESPONSE:
+	  debugSerial.println("Unable to send payload!\n");
+	  return -1;
+	}
 }
 
 /*
@@ -234,9 +253,10 @@ void LoRaMgmtSetup(){
 
 void LoRaSetGblParam(bool confirm, int datalen){
 	conf = confirm;
-	dataLen = datalen;
+	// set boundaries for len value
+	dataLen = max(min(datalen, MAXLORALEN), 1);
 
-	// init random seed with datalen as value
+	// initialize random seed with datalen as value
 	// keep consistency among tests, but differs with diff len
 	srandom(dataLen);
 }
