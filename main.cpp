@@ -230,6 +230,8 @@ runTest(testParam_t * testNow){
 testParam_t ** tno = NULL,
 			*** tgrp = NULL;
 
+unsigned long startTs = 0; // loop timer
+
 /*
  * selectTest: test organization and selection
  *
@@ -260,7 +262,11 @@ selectTest(){
 		tstate = rInit; // TODO: fix internal
 
 		debugSerial.println("-- LOOP 10 Seconds");
-		delay(10000); // TODO: Class C must scan all the time
+
+		// compute time to 10 seconds, aware of unsigned
+		unsigned long wait = 10000 - min(10000, (millis() - startTs));
+		delay(wait); // TODO: Class C must scan all the time
+		startTs = millis();
 	}
 
 	// end of tests of test group?
@@ -269,6 +275,7 @@ selectTest(){
 			tgrp++; // next test group
 			tno = *tgrp;
 			debugSerial.println("Skip to next test group ");
+			startTs = millis();
 		}
 	}
 
@@ -314,6 +321,8 @@ void setup()
 
 	tgrp = &testConfig[0]; 	// assign pointer to pointer to TestgroupA
 	tno = *tgrp; 			// assign pointer to pointer to test 1
+
+	startTs = millis();		// snapshot starting time
 }
 
 void loop()
