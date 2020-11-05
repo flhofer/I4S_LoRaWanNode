@@ -42,8 +42,6 @@
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/LoRaWanNode/core/core}&quot;"/>
                                     									
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/LoRaWanNode/core/variant}&quot;"/>
-                                    									
-                                    <listOptionValue builtIn="false" value="&quot;${workspace_loc:/LoRaWanNode/libraries/TheThingsNetwork/src}&quot;"/>
                                     								
                                 </option>
                                 								
@@ -58,8 +56,6 @@
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/LoRaWanNode/core/core}&quot;"/>
                                     									
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/LoRaWanNode/core/variant}&quot;"/>
-                                    									
-                                    <listOptionValue builtIn="false" value="&quot;${workspace_loc:/LoRaWanNode/libraries/TheThingsNetwork/src}&quot;"/>
                                     								
                                 </option>
                                 								
@@ -74,8 +70,6 @@
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/LoRaWanNode/core/core}&quot;"/>
                                     									
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/LoRaWanNode/core/variant}&quot;"/>
-                                    									
-                                    <listOptionValue builtIn="false" value="&quot;${workspace_loc:/LoRaWanNode/libraries/TheThingsNetwork/src}&quot;"/>
                                     								
                                 </option>
                                 								
