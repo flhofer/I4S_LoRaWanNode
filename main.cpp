@@ -20,33 +20,16 @@ int debug = 1;
 typedef struct _testParam{
 	unsigned long *results;
 	size_t resultsSize;
+	int counter;
 	int (*init)(void);
 	int (*prepare)(void);
 	int (*run)(void);
 	int (*stop)(void);
 	int (*evaluate)(struct _testParam * testNow);
+	int (*reset)(void);
 } testParam_t;
 
 /*************** TEST FUNCTION CALL ********************/
-
-static int nr =0;
-static char grp ='A';
-
-static int testnr(){
-	debugSerial.print("Test run step ");
-	debugSerial.println(++nr);
-	return 0;
-}
-
-static int testend(testParam_t * testNow){
-
-	debugSerial.print("Test end step ");
-	debugSerial.print(++nr);
-	debugSerial.print(" Group ");
-	debugSerial.println((char)(grp++));
-	nr=0;
-	return 0;
-}
 
 static int
 Ainit(){
@@ -74,40 +57,21 @@ Aeval(testParam_t * testNow){
 
 /*************** TEST CONFIGURATIONS ********************/
 
-
-// Test definition
-testParam_t AtestA1 = {
-	NULL, 0,
-	&testnr,
-	&testnr,
-	NULL,
-	&testnr,
-	&testend,
-};
-
-testParam_t AtestA2 = {
-	NULL, 0,
-	&testnr,
-	&testnr,
-	&testnr,
-	&testnr,
-	&testend,
-};
-
-
 // Test definition
 testParam_t testA1 = {
-	NULL, 0,
+	NULL, 0, 2,
 	&Ainit,
-	&LoRaMgmtSendConf,
+	&LoRaMgmtSend,
 	&LoRaMgmtPoll,
 	NULL,
 	&Aeval,
+	NULL,
 };
 
 testParam_t testA2 = {
-	NULL, 0,
+	NULL, 0, 0,
 	&Ainit,
+	NULL,
 	NULL,
 	NULL,
 	NULL,
@@ -116,19 +80,16 @@ testParam_t testA2 = {
 
 // Test group definition
 testParam_t * testGrpA[] = {
-		&AtestA1,
-		&AtestA2,
+		&testA1,
+		&testA2,
 		NULL // Terminator for automatic sizing
 };
 
 testParam_t * testGrpB[] = {
-		&AtestA1,
 		NULL // Terminator for automatic sizing
 };
 
 testParam_t * testGrpC[] = {
-		&AtestA2,
-		&AtestA1,
 		NULL // Terminator for automatic sizing
 };
 
@@ -150,6 +111,7 @@ enum testRun { 	rError = -1,
 				rRun,
 				rStop,
 				rEvaluate,
+				rReset,
 				rEnd = 10
 			};
 
@@ -218,6 +180,20 @@ runTest(testParam_t * testNow){
 			if ((ret = testNow->evaluate(testNow)))
 				break;
 
+		if (--testNow->counter <= 0){
+			tstate = rEnd;
+			break;
+		}
+
+		tstate = rReset;
+		// no break
+		// fall-through
+
+	case rReset:
+		if (testNow->reset)
+			if ((ret = testNow->reset()))
+				break;
+
 		tstate = rEnd;
 		// no break
 
@@ -226,7 +202,7 @@ runTest(testParam_t * testNow){
 		;
 	}
 
-	if (ret == rError ){
+	if (ret == -1 ){
 		debugSerial.println("Error during state execution");
 		tstate = rEnd;
 	}
@@ -266,6 +242,9 @@ selectTest(){
 		debugSerial.println("Skip to next test ");
 		tno++;
 		tstate = rInit; // TODO: fix internal
+
+		debugSerial.println("-- LOOP 10 Seconds");
+		delay(10000); // TODO: Class C must scan all the time
 	}
 
 	// end of tests of test group?
@@ -315,7 +294,7 @@ void setup()
 //			eeprom_update_byte(&ee_bootCnt, ++val);
 //		}
 
-	//LoRaMgmtSetup();
+	LoRaMgmtSetup();
 
 	tgrp = &testConfig[0]; 	// assign pointer to pointer to TestgroupA
 	tno = *tgrp; 			// assign pointer to pointer to test 1
@@ -323,12 +302,8 @@ void setup()
 
 void loop()
 {
-  debugSerial.println("-- LOOP 10 Seconds");
-
   // call test selector
   selectTest();
 
-
-  delay(10000); // TODO: Class C must scan all the time
   debugSerial.read();
 }
