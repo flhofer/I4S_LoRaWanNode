@@ -16,3 +16,7 @@ All core and library folders are supplied by Sloeber.
 - _TheThingsNetwork.*_		Interfacing class for the RN2483 LoRaWan module, modified from the TTN supplied solution
 - _timer.*_		Hardware based timer routines to measure air-time.
 - _LoRaMgmt.*_		routines to manage the test-depending LoRa communication
+
+## Notes on versions
+
+The used Arduino core is AVR 1.8.2 and the RN2483 module mounts a FW version 1.0.5, strictly needed to enable class C operation. 
