@@ -26,7 +26,7 @@ typedef struct _testParam{
 	int (*start)(void);		// Start of test
 	int (*run)(void);		// dwelling status, i.e., wait for resutls
 	int (*stop)(void);		// closing state
-	int (*evaluate)(struct _testParam * testNow);	// Computation of result
+	int (*evaluate)(void);	// Computation of result
 	int (*reset)(void);		// Reset steps for a new run
 } testParam_t;
 
@@ -41,16 +41,7 @@ Ainit(){
 }
 
 static int
-Aeval(testParam_t * testNow){
-	debugSerial.println("Evaluate - add measurement");
-
-	if (!realloc(testNow->results, (testNow->resultsSize+1) * sizeof(unsigned long) )){
-		debugSerial.println("realloc error!");
-		return -1;
-	}
-
-	testNow->results[testNow->resultsSize] = LoRaMgmtGetTime();
-	testNow->resultsSize++;
+Aeval(){
 
 	return 0;
 }
@@ -193,13 +184,23 @@ runTest(testParam_t * testNow){
 
 	case rEvaluate:
 		if (testNow->evaluate)
-			if ((ret = testNow->evaluate(testNow)))
+			if ((ret = testNow->evaluate()))
 				break;
 
 		if (--testNow->counter <= 0){
 			tstate = rEnd;
 			break;
 		}
+
+		debugSerial.println("Evaluate - add measurement");
+
+		if (!realloc(testNow->results, (testNow->resultsSize+1) * sizeof(unsigned long) )){
+			debugSerial.println("realloc error!");
+			return rError;
+		}
+
+		testNow->results[testNow->resultsSize] = LoRaMgmtGetTime();
+		testNow->resultsSize++;
 
 		tstate = rReset;
 		// no break
@@ -265,7 +266,7 @@ selectTest(){
 
 		// compute time to 10 seconds, aware of unsigned
 		unsigned long wait = 10000 - min(10000, (millis() - startTs));
-		delay(wait); // TODO: Class C must scan all the time
+		delay(wait);
 		startTs = millis();
 	}
 
