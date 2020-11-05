@@ -12,22 +12,21 @@
 #include <stdlib.h>				// AVR standard library
 
 // DevAddr, NwkSKey, AppSKey and the frequency plan
-const char *devAddr = LORA_DEVADDR;
-const char *nwkSKey = LORA_NWSKEY;
-const char *appSKey = LORA_APSKEY;
+static const char *devAddr = LORA_DEVADDR;
+static const char *nwkSKey = LORA_NWSKEY;
+static const char *appSKey = LORA_APSKEY;
 
 // Select frequency plan between TTN_FP_EU868 or TTN_FP_US915
 #define freqPlan TTN_FP_EU868
 #define MAXLORALEN	51			// maximum payload length
 
 // Modem constructor
-TheThingsNetwork ttn(loraSerial, debugSerial,
+static TheThingsNetwork ttn(loraSerial, debugSerial,
 					freqPlan, TTN_DEFAULT_SF, TTN_DEFAULT_FSB);
 
-unsigned long lastTime = 0; // store last measurement
-bool conf = false;			// use confirmed messages
-int dataLen = 1; 			// TX data length for tests
-
+static unsigned long lastTime = 0; // store last measurement
+static bool conf = false;			// use confirmed messages
+static int dataLen = 1; 			// TX data length for tests
 
 /********************** HELPERS ************************/
 
