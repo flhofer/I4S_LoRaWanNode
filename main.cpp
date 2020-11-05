@@ -18,15 +18,16 @@ int debug = 1;
 
 // Test data structure
 typedef struct _testParam{
-	unsigned long *results;
-	size_t resultsSize;
-	int counter;
-	int (*init)(void);
-	int (*prepare)(void);
-	int (*run)(void);
-	int (*stop)(void);
-	int (*evaluate)(struct _testParam * testNow);
-	int (*reset)(void);
+	unsigned long *results;	// Data points TODO: change to LL
+	size_t resultsSize;		// size of data points
+	int counter;			// How many times to repeat
+	int syncCode;			// DO sync code with jamming devices
+	int (*init)(void);		// Hardware and RF preparation code
+	int (*prepare)(void);	// Start of test
+	int (*run)(void);		// dwelling status, i.e., wait for resutls
+	int (*stop)(void);		// closing state
+	int (*evaluate)(struct _testParam * testNow);	// Computation of result
+	int (*reset)(void);		// Reset steps for a new run
 } testParam_t;
 
 /*************** TEST FUNCTION CALL ********************/
@@ -59,7 +60,7 @@ Aeval(testParam_t * testNow){
 
 // Test definition
 testParam_t testA1 = {
-	NULL, 0, 2,
+	NULL, 0, 2, 0,
 	&Ainit,
 	&LoRaMgmtSend,
 	&LoRaMgmtPoll,
@@ -69,7 +70,7 @@ testParam_t testA1 = {
 };
 
 testParam_t testA2 = {
-	NULL, 0, 0,
+	NULL, 0, 0, 0,
 	&Ainit,
 	NULL,
 	NULL,
@@ -103,7 +104,6 @@ testParam_t **testConfig[] = { // array of testParam_t**
 
 /*************** TEST MANAGEMENT FUNCTIONS*****************/
 
-
 // Enumeration for test status
 enum testRun { 	rError = -1,
 				rInit = 0,
@@ -116,6 +116,20 @@ enum testRun { 	rError = -1,
 			};
 
 enum testRun tstate = rInit;
+
+/*
+ * writeSyncState: set sync for companion devices
+ *
+ * Arguments: - code to send to the other participants in test
+ *
+ * Return:	  -
+ */
+static void
+writeSyncState(int syncCode){
+
+	;
+}
+
 
 /*
  * runTest: test runner
@@ -140,6 +154,8 @@ runTest(testParam_t * testNow){
 		if (testNow->init)
 			if ((ret = testNow->init()))
 				break;
+
+		writeSyncState(testNow->syncCode);
 
 		tstate = rPrepare;
 		// no break
