@@ -9,6 +9,7 @@
 #include "main.h"				// Global includes/definitions, i.e. address, key, debug mode
 #include "timer.h"				// Custom Timer, stop-watch routines
 #include "TheThingsNetwork.h"	// LoRaWan library by TTN
+#include <stdlib.h>				// AVR standard library
 
 // DevAddr, NwkSKey, AppSKey and the frequency plan
 const char *devAddr = LORA_DEVADDR;
@@ -23,8 +24,11 @@ TheThingsNetwork ttn(loraSerial, debugSerial,
 					freqPlan, TTN_DEFAULT_SF, TTN_DEFAULT_FSB);
 
 unsigned long lastTime = 0; // store last measurement
-bool conf = false;
+bool conf = false;			// use confirmed messages
+int dataLen = 1; 			// TX data length for tests
 
+
+/********************** HELPERS ************************/
 
 /*************** CALLBACK FUNCTIONS ********************/
 
@@ -228,4 +232,11 @@ void LoRaMgmtSetup(){
 	ttn.showStatus();
 }
 
+void LoRaSetGblParam(bool confirm, int datalen){
+	conf = confirm;
+	dataLen = datalen;
 
+	// init random seed with datalen as value
+	// keep consistency among tests, but differs with diff len
+	srandom(dataLen);
+}

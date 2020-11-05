@@ -9,6 +9,7 @@
 #define LORAMGMT_H_
 
 void LoRaMgmtSetup();
+void LoRaSetGblParam(bool confirm, int datalen);
 
 int LoRaMgmtSend();
 
