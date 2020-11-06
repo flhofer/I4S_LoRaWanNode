@@ -112,7 +112,7 @@ enum testRun { 	rError = -1,
 			};
 
 static enum testRun tstate = rInit;
-static bool conf = false;	// TODO: implement menu and switch
+static bool confirmed = false;	// TODO: implement menu and switch
 static int dataLen = 1; 	// TODO: implement menu and switch
 static int retries; 		// un-conf send retries
 static int pollcnt;			// un-conf poll retries
@@ -158,7 +158,9 @@ runTest(testParam_t * testNow){
 		writeSyncState(testNow->syncCode);
 
 		// Set global test parameters
-		LoRaSetGblParam(conf, dataLen);
+		LoRaSetGblParam(confirmed, dataLen);
+		retries=0;
+		pollcnt=0;
 
 		tstate = rStart;
 		// no break
@@ -178,7 +180,7 @@ runTest(testParam_t * testNow){
 	case rRun:
 
 		if (testNow->run)
-			if ((ret = testNow->run()) && pollcnt < UNCF_POLL){
+			if ((ret = testNow->run()) && (pollcnt < UNCF_POLL || confirmed)){
 				pollcnt++; // TODO: differentiate no response with not possibl to tx/rx.
 				break;
 			}
@@ -188,8 +190,11 @@ runTest(testParam_t * testNow){
 			debugSerial.println("Poll - No response from server.");
 			retries++;
 			pollcnt=0;
-			if (UNCF_RETRY > retries)
+			if (UNCF_RETRY > retries){
+				tstate = rStart;
 				break;
+			}
+
 		}
 
 		tstate = rStop;
