@@ -28,6 +28,7 @@ static unsigned long lastTime = 0; // store last measurement
 static bool conf = false;			// use confirmed messages
 static int dataLen = 1; 			// TX data length for tests
 static unsigned long rnd_contex;	// pseudo-random generator context (for reentrant)
+static unsigned long rxwindows = 2000; // pause duration in ms between tx'es
 
 /********************** HELPERS ************************/
 
@@ -187,7 +188,7 @@ int LoRaMgmtSend(){
  * Return:	  status of polling, 0 ok, -1 error, 1 busy
  */
 int LoRaMgmtPoll(){
-	delay(3000); // pause a second
+	delay(rxwindows); // pause a second
 
 	ttn_response_t ret = ttn.poll(1, conf);
 
@@ -250,6 +251,7 @@ void LoRaMgmtSetup(){
 
 	debugSerial.println("-- STATUS");
 	ttn.showStatus();
+
 }
 
 /*
