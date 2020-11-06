@@ -977,9 +977,8 @@ bool TheThingsNetwork::setChannelStatus (uint8_t ch, bool status){
   if (ch > 15)
 	return false;
 
-  const char * buf = compare_table[1]; // "on"
-  if (!status)
-	  buf++;	// move to "off"
+  char buf[4]; // on - off
+  (void)strcpy_P(buf, (char *)pgm_read_word(&(compare_table[2 - int(status)])));
 
   return sendChSet(MAC_CHANNEL_STATUS, ch, buf);
 }
