@@ -18,7 +18,7 @@ static const char *appSKey = LORA_APSKEY;
 
 // Select frequency plan between TTN_FP_EU868 or TTN_FP_US915
 #define freqPlan TTN_FP_EU868
-#define MAXLORALEN	51			// maximum payload length
+#define MAXLORALEN	51			// maximum payload length 0-51 for DR0-2, 115 for DR3, 242 otherwise
 
 // Modem constructor
 static TheThingsNetwork ttn(loraSerial, debugSerial,
@@ -261,3 +261,14 @@ void LoRaSetGblParam(bool confirm, int datalen){
 	srandom(dataLen);
 
 }
+
+int LoRaSetChannels(uint8_t chnMsk){
+
+  bool retVal = true;
+
+  for (int i; i<16; i++, chnMsk >>=1)
+	retVal &= ttn.setChannelStatus((uint8_t)i, (bool)chnMsk & 0x01);
+
+  return retVal;
+}
+

@@ -8,11 +8,14 @@
 #ifndef LORAMGMT_H_
 #define LORAMGMT_H_
 
+#include <stdint.h>
+
 void LoRaMgmtSetup();
 void LoRaSetGblParam(bool confirm, int datalen);
 
-int LoRaMgmtSend();
+int LoRaSetChannels(uint8_t chnMsk);
 
+int LoRaMgmtSend();
 int LoRaMgmtPoll();
 
 unsigned long LoRaMgmtGetTime();
