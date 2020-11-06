@@ -14,8 +14,17 @@
 
 #define UNCF_POLL	5			// How many times to poll
 #define UNCF_RETRY	5			// Hoe many times retry to send unconfirmed message
+#define RESFREEDEL	300000		// ~resource freeing delay ETSI requirement air-time reduction
 
-uint8_t EEMEM ee_bootCnt;	// reboot counter
+/* EEPROM address */
+
+ uint8_t EEMEM ee_bootCnt;	// reboot counter
+
+/* Locals 		*/
+
+static uint8_t actChan = 16;		// active channels
+
+/* 	Globals		*/
 
 int debug = 1;
 
@@ -41,6 +50,7 @@ TT_InitMono(){
 	// Setup channels to MonoChannel
 	debugSerial.println("Init - channel config");
 
+	actChan = 1;
 	return LoRaSetChannels(0x01); // Enable channel 1 only;
 
 }
@@ -181,12 +191,12 @@ runTest(testParam_t * testNow){
 
 		if (testNow->run)
 			if ((ret = testNow->run()) && (pollcnt < UNCF_POLL || confirmed)){
-				pollcnt++; // TODO: differentiate no response with not possibl to tx/rx.
+				pollcnt++; // TODO: differentiate no response with not possible to tx/rx.
 				break;
 			}
 
-		// Polling ended and still busy? -> no response during poll retries
-		if (ret == 1){
+		// Unconf polling ended and still busy? -> no response during poll retries
+		if (ret == 1 && !confirmed){
 			debugSerial.println("Poll - No response from server.");
 			retries++;
 			pollcnt=0;
@@ -240,6 +250,7 @@ runTest(testParam_t * testNow){
 			if ((ret = testNow->reset()))
 				break;
 
+		delay(RESFREEDEL/actChan); // delay for modem resource free
 		tstate = rEnd;
 		// no break
 
