@@ -173,10 +173,12 @@ int LoRaMgmtSend(){
 	  return 1;
 
 	default:
-	case TTN_ERROR_SEND_COMMAND_FAILED:
 	case TTN_ERROR_UNEXPECTED_RESPONSE:
 	  debugSerial.println("Unable to send payload!\n");
 	  return -1;
+
+	case TTN_ERROR_SEND_COMMAND_FAILED:
+	  return -2;
 	}
 }
 
@@ -194,21 +196,23 @@ int LoRaMgmtPoll(){
 
 	switch (ret) {
 
+	  // TX only
+	case TTN_SUCCESSFUL_TRANSMISSION:
 	  // ACK receive ok
 	case TTN_SUCCESSFUL_RECEIVE:
 	  return 0;
 
 	case TTN_UNSUCESSFUL_RECEIVE:
-	case TTN_ERROR_SEND_COMMAND_FAILED:
 	  // probably busy
 	  return 1;
 
 	default:
-	  // TX only
-	case TTN_SUCCESSFUL_TRANSMISSION:
 	case TTN_ERROR_UNEXPECTED_RESPONSE:
 	  debugSerial.println("Unable to send payload!\n");
 	  return -1;
+
+	case TTN_ERROR_SEND_COMMAND_FAILED:
+	  return -2;
 	}
 
 	return 0;
