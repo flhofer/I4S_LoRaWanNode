@@ -10,6 +10,8 @@
 
 #include <stdint.h>
 
+#define LORACHNMAX 7
+
 void LoRaMgmtSetup();
 void LoRaSetGblParam(bool confirm, int datalen);
 
