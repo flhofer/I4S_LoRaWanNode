@@ -210,20 +210,21 @@ runTest(testParam_t * testNow){
 			if ((ret = testNow->evaluate()))
 				break;
 
-		if (--testNow->counter <= 0){
-			tstate = rEnd;
-			break;
-		}
-
 		debugSerial.println("Evaluate - add measurement");
 
 		if (!realloc(testNow->results, (testNow->resultsSize+1) * sizeof(unsigned long) )){
-			debugSerial.println("realloc error!");
+			debugSerial.println("re-alloc error!"); // TODO: avoid dynamic memory allocation
 			return rError;
 		}
 
 		testNow->results[testNow->resultsSize] = LoRaMgmtGetTime();
 		testNow->resultsSize++;
+
+		// Test repeats?
+		if (--testNow->counter <= 0){
+			tstate = rEnd;
+			break;
+		}
 
 		tstate = rReset;
 		// no break
