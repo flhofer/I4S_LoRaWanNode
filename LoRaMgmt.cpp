@@ -27,6 +27,7 @@ static TheThingsNetwork ttn(loraSerial, debugSerial,
 static unsigned long lastTime = 0; // store last measurement
 static bool conf = false;			// use confirmed messages
 static int dataLen = 1; 			// TX data length for tests
+static unsigned long rnd_contex;	// pseudo-random generator context (for reentrant)
 
 /********************** HELPERS ************************/
 
@@ -42,7 +43,7 @@ generatePayload(byte *payload){
 
 	// TODO: unprotected memory
 	for (int i=0; i<dataLen; i++, payload++)
-		*payload=(byte)random(255);
+		*payload=(byte)(random_r(&rnd_contex) % 255);
 
 	return payload;
 }
@@ -258,4 +259,5 @@ void LoRaSetGblParam(bool confirm, int datalen){
 	// initialize random seed with datalen as value
 	// keep consistency among tests, but differs with diff len
 	srandom(dataLen);
+
 }
