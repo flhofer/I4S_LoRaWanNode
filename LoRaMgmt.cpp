@@ -266,7 +266,7 @@ int LoRaSetChannels(uint8_t chnMsk){
 
   bool retVal = true;
 
-  for (int i; i<16; i++, chnMsk >>=1)
+  for (int i=0; i<16; i++, chnMsk >>=1)
 	retVal &= ttn.setChannelStatus((uint8_t)i, (bool)chnMsk & 0x01);
 
   return retVal;
