@@ -12,6 +12,9 @@
 
 #include "LoRaMgmt.h"			// LoRaWan modem management
 
+#define UNCF_POLL	5			// How many times to poll
+#define UNCF_RETRY	5			// Hoe many times retry to send unconfirmed message
+
 uint8_t EEMEM ee_bootCnt;	// reboot counter
 
 int debug = 1;
@@ -38,7 +41,7 @@ TT_InitMono(){
 	// Setup channels to MonoChannel
 	debugSerial.println("Init - channel config");
 
-	return LoRaSetChannels(1); // Enable channel 1 only;
+	return LoRaSetChannels(0x01); // Enable channel 1 only;
 
 }
 
@@ -109,8 +112,10 @@ enum testRun { 	rError = -1,
 			};
 
 static enum testRun tstate = rInit;
-static bool conf = false; // TOOD: implement menu and switch
-static int dataLen = 1; // TOOD: implement menu and switch
+static bool conf = false;	// TODO: implement menu and switch
+static int dataLen = 1; 	// TODO: implement menu and switch
+static int retries; 		// un-conf send retries
+static int pollcnt;			// un-conf poll retries
 
 /*
  * writeSyncState: set sync for companion devices
@@ -173,8 +178,19 @@ runTest(testParam_t * testNow){
 	case rRun:
 
 		if (testNow->run)
-			if ((ret = testNow->run()))
+			if ((ret = testNow->run()) && pollcnt < UNCF_POLL){
+				pollcnt++; // TODO: differentiate no response with not possibl to tx/rx.
 				break;
+			}
+
+		// Polling ended and still busy? -> no response during poll retries
+		if (ret == 1){
+			debugSerial.println("Poll - No response from server.");
+			retries++;
+			pollcnt=0;
+			if (UNCF_RETRY > retries)
+				break;
+		}
 
 		tstate = rStop;
 		// no break
