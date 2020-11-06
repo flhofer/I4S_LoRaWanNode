@@ -227,6 +227,7 @@ unsigned long LoRaMgmtGetTime(){
 
 /*
  * LoRaMgmtSetup: setup LoRaWan communication with modem
+ *
  * Arguments: -
  *
  * Return:	  -
@@ -251,6 +252,14 @@ void LoRaMgmtSetup(){
 	ttn.showStatus();
 }
 
+/*
+ * LoRaSetGblParam: set generic parameters, re-init random seed
+ *
+ * Arguments: - confirmed send yes/no
+ * 			  - simulated payload length
+ *
+ * Return:	  -
+ */
 void LoRaSetGblParam(bool confirm, int datalen){
 	conf = confirm;
 	// set boundaries for len value
@@ -262,13 +271,20 @@ void LoRaSetGblParam(bool confirm, int datalen){
 
 }
 
-int LoRaSetChannels(uint8_t chnMsk){
+/*
+ * LoRaSetChannels:
+ *
+ * Arguments: - channel enable bit mask, 0 off, 1 on
+ *
+ * Return:	  - return 0 if OK, -1 if error
+ */
+int LoRaSetChannels(uint16_t chnMsk){
 
   bool retVal = true;
 
   for (int i=0; i<LORACHNMAX; i++, chnMsk >>=1)
 	retVal &= ttn.setChannelStatus((uint8_t)i, (bool)chnMsk & 0x01);
 
-  return retVal;
+  return !retVal * -1;
 }
 
