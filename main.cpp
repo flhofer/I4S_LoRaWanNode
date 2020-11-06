@@ -331,7 +331,7 @@ void setup()
 		  // delay(10); -- Included in Serial_::operator()
 		  waitSE--;
 		}
-		debug = !(waitSE);	// reset debug flag if time is elapsed
+		debug &= waitSE;	// reset debug flag if time is elapsed
 	}
 
 	uint8_t val = 0;
