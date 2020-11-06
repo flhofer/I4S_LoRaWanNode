@@ -616,7 +616,7 @@ ttn_response_t TheThingsNetwork::sendBytes(const uint8_t *payload, size_t length
   }
 
   // read modem response
-  if (!readLine(buffer, sizeof(buffer) && confirm)) // Read response
+  if (!readLine(buffer, sizeof(buffer)) && confirm) // Read response
 	  // confirmed and RX timeout -> ask to poll if necessary
 	  return TTN_UNSUCESSFUL_RECEIVE;
 
