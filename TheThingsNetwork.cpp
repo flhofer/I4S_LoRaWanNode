@@ -953,6 +953,38 @@ void TheThingsNetwork::configureChannels(uint8_t fsb)
   sendMacSet(MAC_RETX, TTN_RETX);
 }
 
+bool TheThingsNetwork::reconfChannel(uint8_t ch, uint32_t freq, uint8_t drmin, uint8_t drmax){
+
+  bool retVal = true;
+
+  if (ch > 15)
+	  return false;
+
+  if ((drmin > 15) && (drmax > 15))
+	retVal &= sendChSet(MAC_CHANNEL_DRRANGE, ch, "0 6");
+  else
+	return false;
+
+  if ((freq)){
+	char buf[10];
+	sprintf(buf, "%lu", freq);
+	retVal &= sendChSet(MAC_CHANNEL_FREQ, ch, buf);
+  }
+  return retVal;
+}
+
+bool TheThingsNetwork::setChannelStatus (uint8_t ch, bool status){
+  if (ch > 15)
+	return false;
+
+  const char * buf = compare_table[1]; // "on"
+  if (!status)
+	  buf++;	// move to "off"
+
+  return sendChSet(MAC_CHANNEL_STATUS, ch, buf);
+}
+
+
 bool TheThingsNetwork::setSF(uint8_t sf)
 {
   uint8_t dr;
