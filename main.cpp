@@ -33,11 +33,13 @@ typedef struct _testParam{
 /*************** TEST FUNCTION CALL ********************/
 
 static int
-Ainit(){
+TT_InitMono(){
 
 	// Setup channels to MonoChannel
 	debugSerial.println("Init - channel config");
-	return 0;
+
+	return LoRaSetChannels(1); // Enable channel 1 only;
+
 }
 
 static int
@@ -52,7 +54,7 @@ Aeval(){
 // Test definition
 static testParam_t testA1 = {
 	NULL, 0, 2, 0,
-	&Ainit,
+	&TT_InitMono,
 	&LoRaMgmtSend,
 	&LoRaMgmtPoll,
 	NULL,
@@ -62,7 +64,7 @@ static testParam_t testA1 = {
 
 static testParam_t testA2 = {
 	NULL, 0, 0, 0,
-	&Ainit,
+	&TT_InitMono,
 	NULL,
 	NULL,
 	NULL,
