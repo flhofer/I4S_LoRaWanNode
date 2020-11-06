@@ -293,7 +293,7 @@ TheThingsNetwork::TheThingsNetwork(Stream &modemStream, Stream &debugStream, ttn
 {
   this->debugStream = &debugStream;
   this->modemStream = &modemStream;
-  this->modemStream->setTimeout(10000);
+  this->modemStream->setTimeout(TTN_DEFAULT_TOUT);
   this->fp = fp;
   this->sf = sf;
   this->fsb = fsb;
@@ -420,7 +420,7 @@ void TheThingsNetwork::autoBaud()
   }
   delay(100);
   clearReadBuffer();
-  modemStream->setTimeout(10000);
+  modemStream->setTimeout(TTN_DEFAULT_TOUT);
   baudDetermined = true;
 }
 
@@ -676,7 +676,7 @@ ttn_response_t TheThingsNetwork::poll(port_t port, bool confirm)
 
   case CLASS_C:
     {
-      // Class C: check rx buffer for any recevied data
+      // Class C: check rx buffer for any received data
       memset(buffer, 0, sizeof(buffer));
 
       long timeout = this->modemStream->getTimeout();
