@@ -238,6 +238,16 @@ runTest(testParam_t * testNow){
 //		testNow->results[testNow->resultsSize] = LoRaMgmtGetTime();
 //		testNow->resultsSize++;
 
+		sLoRaResutls_t * res;
+		res =  LoRaMgmtGetResults();
+		debugSerial.print("CR 4/");
+		debugSerial.print(res->lastCR);
+		debugSerial.print(" SF ");
+		debugSerial.print(res->txSF);
+		debugSerial.print(" BW ");
+		debugSerial.print(res->txBW);
+		debugSerial.println("kHz ");
+
 		// Test repeats?
 		if (--testNow->counter <= 0){
 			tstate = rEnd;
