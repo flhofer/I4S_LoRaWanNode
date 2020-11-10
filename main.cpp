@@ -247,6 +247,16 @@ runTest(testParam_t * testNow){
 		debugSerial.print(" BW ");
 		debugSerial.print(res->txBW);
 		debugSerial.println("kHz ");
+		debugSerial.print("Freq [hz] ");
+		debugSerial.print(res->txFrq);
+		debugSerial.print(" rxBW ");
+		debugSerial.print(res->rxBw);
+		debugSerial.print(" pwr [dBm] ");
+		debugSerial.print(res->txPwr);
+		debugSerial.print(" rssi ");
+		debugSerial.print(res->rxRssi);
+		debugSerial.print(" snr ");
+		debugSerial.println(res->rxSnr);
 
 		// Test repeats?
 		if (--testNow->counter <= 0){
