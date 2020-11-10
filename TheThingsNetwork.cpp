@@ -322,6 +322,30 @@ uint16_t TheThingsNetwork::getVDD()
   return 0;
 }
 
+uint8_t TheThingsNetwork::getBW()
+{
+  if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_BW, buffer, sizeof(buffer)) > 0) {
+    return atoi(buffer);
+  }
+  return 0;
+}
+
+uint8_t TheThingsNetwork::getCR()
+{
+  if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_CR, buffer, sizeof(buffer)) > 2) {
+    return atoi(buffer+2); // skip the first two chars "4/"
+  }
+  return 0;
+}
+
+uint8_t TheThingsNetwork::getSF()
+{
+  if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_BW, buffer, sizeof(buffer)) > 2) {
+    return atoi(buffer+2); // skip the first two chars "sf"
+  }
+  return 0;
+}
+
 void TheThingsNetwork::debugPrintIndex(uint8_t index, const char *value)
 {
   char message[100];
@@ -394,7 +418,7 @@ size_t TheThingsNetwork::readResponse(uint8_t prefixTable, uint8_t indexTable, u
 {
   clearReadBuffer();
   sendCommand(prefixTable, 0, true, false);
-  sendCommand(MAC_TABLE, MAC_GET, true, false);
+  sendCommand(MAC_TABLE, MAC_GET, true, false); // default "get " in between (same as radio get)
   sendCommand(indexTable, index, false, false);
   modemStream->write(SEND_MSG);
   return readLine(buffer, size);
