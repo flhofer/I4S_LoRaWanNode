@@ -14,7 +14,7 @@
 
 #define UNCF_POLL	5			// How many times to poll
 #define UNCF_RETRY	5			// Hoe many times retry to send unconfirmed message
-#define RESFREEDEL	300000		// ~resource freeing delay ETSI requirement air-time reduction
+#define RESFREEDEL	30000		// ~resource freeing delay ETSI requirement air-time reduction
 
 /* EEPROM address */
 
@@ -179,9 +179,11 @@ runTest(testParam_t * testNow){
 	case rStart:
 
 		if (testNow->start)
-			if ((ret = testNow->start())
-					&& ret != 1) // skip if busy
+			if ((ret = testNow->start()) && ret!=1){ // next if modem is busy
+				if (ret == -2)
+					delay(RESFREEDEL/actChan); // test if busy= sent anyway
 				break;
+			}
 
 		tstate = rRun;
 		// no break
@@ -202,6 +204,7 @@ runTest(testParam_t * testNow){
 			pollcnt=0;
 			if (UNCF_RETRY > retries){
 				tstate = rStart;
+				delay(RESFREEDEL/actChan); // delay for modem resource free
 				break;
 			}
 
@@ -227,13 +230,13 @@ runTest(testParam_t * testNow){
 
 		debugSerial.println("Evaluate - add measurement");
 
-		if (!realloc(testNow->results, (testNow->resultsSize+1) * sizeof(unsigned long) )){
-			debugSerial.println("re-alloc error!"); // TODO: avoid dynamic memory allocation
-			return rError;
-		}
-
-		testNow->results[testNow->resultsSize] = LoRaMgmtGetTime();
-		testNow->resultsSize++;
+//		if (!realloc(testNow->results, (testNow->resultsSize+1) * sizeof(unsigned long) )){
+//			debugSerial.println("re-alloc error!"); // TODO: avoid dynamic memory allocation
+//			return rError;
+//		}
+//
+//		testNow->results[testNow->resultsSize] = LoRaMgmtGetTime();
+//		testNow->resultsSize++;
 
 		// Test repeats?
 		if (--testNow->counter <= 0){
@@ -250,8 +253,8 @@ runTest(testParam_t * testNow){
 			if ((ret = testNow->reset()))
 				break;
 
-		delay(RESFREEDEL/actChan); // delay for modem resource free
-		tstate = rEnd;
+		//delay(RESFREEDEL/actChan); // delay for modem resource free
+		tstate = rInit;
 		// no break
 
 	default:
