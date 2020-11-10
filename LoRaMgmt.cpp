@@ -28,6 +28,7 @@ static bool conf = false;			// use confirmed messages
 static int dataLen = 1; 			// TX data length for tests
 static unsigned long rnd_contex;	// pseudo-random generator context (for reentrant)
 static unsigned long rxWindow = 1000; // pause duration in ms between tx and rx TODO: get parameter
+static unsigned long wdt;			// watch-dog timeout timer value, 15000 default
 
 static sLoRaResutls_t lastResults;	// Last results of test
 
@@ -115,6 +116,7 @@ static void onBeforeTx(){
  * Return:	  -
  */
 static void onAfterTx(){
+
 	lastResults.timeTx = getTimer();
 	if (!debug)
 		return;
@@ -240,11 +242,15 @@ int LoRaMgmtPoll(){
  * Return:	  ulong with time in ms
  */
 sLoRaResutls_t * LoRaMgmtGetResults(){
-
-	//TODO: Duplicate and return
+	//TODO: duplicate? in heap and return, or copy in memory
 	lastResults.lastCR = ttn.getCR();
-	lastResults.txSF = ttn.getSF();
 	lastResults.txBW = ttn.getBW();
+	lastResults.txSF = ttn.getSF();
+	lastResults.txFrq = ttn.getFrequency();
+	lastResults.rxBw = ttn.getRxBW();
+	lastResults.txPwr = ttn.getPower();
+	lastResults.rxRssi = ttn.getRSSI();
+	lastResults.rxSnr = ttn.getSNR();
 	return &lastResults;
 }
 
@@ -274,6 +280,10 @@ void LoRaMgmtSetup(){
 	debugSerial.println("-- STATUS");
 	ttn.showStatus();
 
+	wdt = ttn.getWatchDogTimer();
+
+	debugSerial.print("Watchdog timer set to [ms] ");
+	debugSerial.println(wdt);
 }
 
 /*
@@ -292,7 +302,6 @@ void LoRaSetGblParam(bool confirm, int datalen){
 	// initialize random seed with datalen as value
 	// keep consistency among tests, but differs with diff len
 	srandom(dataLen);
-
 }
 
 /*

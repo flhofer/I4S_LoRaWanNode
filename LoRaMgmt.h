@@ -19,7 +19,6 @@ typedef struct sLoRaResutls {
 	unsigned long timeToRx;
 	unsigned long txFrq;	// current used frequency
 	unsigned long rxBw;		// receive bandwidth in kHz (float)
-	unsigned long wdt;		// watch-dog timeout timer value, 15000 default
 	uint8_t lastCR;			// Coding rate 4/x
 	uint8_t txBW;			// current bandwidth in kHz
 	uint8_t txSF;			// Tx spread factor, SF7 to 12
