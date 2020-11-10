@@ -340,7 +340,7 @@ uint8_t TheThingsNetwork::getCR()
 
 uint8_t TheThingsNetwork::getSF()
 {
-  if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_BW, buffer, sizeof(buffer)) > 2) {
+  if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_SF, buffer, sizeof(buffer)) > 2) {
     return atoi(buffer+2); // skip the first two chars "sf"
   }
   return 0;
