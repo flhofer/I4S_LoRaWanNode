@@ -24,11 +24,12 @@ static const char *appSKey = LORA_APSKEY;
 static TheThingsNetwork ttn(loraSerial, debugSerial,
 					freqPlan, TTN_DEFAULT_SF, TTN_DEFAULT_FSB);
 
-static unsigned long lastTime = 0; // store last measurement
 static bool conf = false;			// use confirmed messages
 static int dataLen = 1; 			// TX data length for tests
 static unsigned long rnd_contex;	// pseudo-random generator context (for reentrant)
-static unsigned long rxwindows = 2000; // pause duration in ms between tx'es
+static unsigned long rxWindow = 1000; // pause duration in ms between tx and rx TODO: get parameter
+
+static sLoRaResutls_t lastResults;	// Last results of test
 
 /********************** HELPERS ************************/
 
@@ -102,6 +103,9 @@ static void onMessage(const uint8_t *payload, size_t size, port_t port){
  */
 static void onBeforeTx(){
 	startTimer();
+	lastResults.timeTx = 0;
+	lastResults.timeRx = 0;
+	lastResults.timeToRx = 0;
 }
 
 /*
@@ -111,14 +115,19 @@ static void onBeforeTx(){
  * Return:	  -
  */
 static void onAfterTx(){
-	lastTime = getTimer();
+	lastResults.timeTx = getTimer();
 	if (!debug)
 		return;
 
 	debugSerial.print("Time TX: ");
-	debugSerial.print(lastTime/1000);
+	debugSerial.print(lastResults.timeTx / 1000);
 	debugSerial.print(".");
-	debugSerial.print(lastTime %1000);
+	int fact = lastResults.timeTx % 1000;
+	if (fact <100)
+		debugSerial.print("0");
+	if (fact <10)
+		debugSerial.print("0");
+	debugSerial.print(fact);
 	debugSerial.println(" ms");
 }
 
@@ -129,14 +138,20 @@ static void onAfterTx(){
  * Return:	  -
  */
 static void onAfterRx(){
-	lastTime = getTimer();
+	lastResults.timeToRx = getTimer();
+	lastResults.timeRx = lastResults.timeToRx - lastResults.timeTx - rxWindow;
 	if (!debug)
 		return;
 
 	debugSerial.print("Time RX: ");
-	debugSerial.print(lastTime/1000);
+	debugSerial.print(lastResults.timeTx / 1000);
 	debugSerial.print(".");
-	debugSerial.print(lastTime %1000);
+	int fact = lastResults.timeTx % 1000;
+	if (fact <100)
+		debugSerial.print("0");
+	if (fact <10)
+		debugSerial.print("0");
+	debugSerial.print(fact);
 	debugSerial.println(" ms");
 }
 
@@ -190,8 +205,6 @@ int LoRaMgmtSend(){
  * Return:	  status of polling, 0 ok, -1 error, 1 busy
  */
 int LoRaMgmtPoll(){
-	delay(rxwindows); // pause a second
-
 	ttn_response_t ret = ttn.poll(1, conf);
 
 	switch (ret) {
@@ -226,8 +239,13 @@ int LoRaMgmtPoll(){
  *
  * Return:	  ulong with time in ms
  */
-unsigned long LoRaMgmtGetTime(){
-	return lastTime;
+sLoRaResutls_t * LoRaMgmtGetResults(){
+
+	//TODO: Duplicate and return
+	lastResults.lastCR = ttn.getCR();
+	lastResults.txSF = ttn.getSF();
+	lastResults.txBW = ttn.getBW();
+	return &lastResults;
 }
 
 /*
