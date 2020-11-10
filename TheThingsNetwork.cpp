@@ -358,6 +358,54 @@ uint8_t TheThingsNetwork::getSF()
   return 0;
 }
 
+unsigned long TheThingsNetwork::getFrequency()
+{
+  if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_FREQ, buffer, sizeof(buffer)) > 0) {
+    return atol(buffer);
+  }
+  return 0;
+}
+
+uint8_t TheThingsNetwork::getRxBW()
+{
+  if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_RXBW, buffer, sizeof(buffer)) > 0) {
+    return atoi(buffer);
+  }
+  return 0;
+}
+
+unsigned long TheThingsNetwork::getWatchDogTimer()
+{
+  if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_WDT, buffer, sizeof(buffer)) > 0) {
+    return atol(buffer);
+  }
+  return 0;
+}
+
+int8_t TheThingsNetwork::getPower()
+{
+  if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_PWR, buffer, sizeof(buffer)) > 0) {
+    return atoi(buffer);
+  }
+  return 0;
+}
+
+int8_t TheThingsNetwork::getRSSI()
+{
+  if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_RSSI, buffer, sizeof(buffer)) > 0) {
+    return atoi(buffer);
+  }
+  return 0;
+}
+
+int8_t TheThingsNetwork::getSNR()
+{
+  if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_SNR, buffer, sizeof(buffer)) > 0) {
+    return atoi(buffer);
+  }
+  return 0;
+}
+
 void TheThingsNetwork::debugPrintIndex(uint8_t index, const char *value)
 {
   char message[100];
