@@ -160,6 +160,28 @@ static void onAfterRx(){
 
 /*************** TEST SEND FUNCTIONS ********************/
 
+static int
+evaluateResponse(int ret){
+	switch (ret) {
+
+	  // TX only
+	case TTN_SUCCESSFUL_TRANSMISSION:
+	  // ACK receive ok
+	case TTN_SUCCESSFUL_RECEIVE:
+	  return 0;
+
+	default:
+	case TTN_ERROR_UNEXPECTED_RESPONSE:
+	  debugSerial.println("Unable to send payload!\n");
+	  return -999;
+
+	case TTN_UNSUCESSFUL_RECEIVE:
+		  // probably busy
+	case TTN_ERROR_SEND_COMMAND_FAILED:
+	  return (int)ttn.getLastError(); // transform error code to int -> forward to main
+	}
+}
+
 /*
  * LoRaMgmtSendConf: send a confirmed message. If no response arrives
  * 		within timeout, return 1 (busy)
@@ -177,27 +199,7 @@ int LoRaMgmtSend(){
 
 	// Send it off
 	ttn_response_t ret = ttn.sendBytes(payload, sizeof(payload), 1, conf);
-
-	switch (ret) {
-
-	  // TX only
-	case TTN_SUCCESSFUL_TRANSMISSION:
-	  // ACK receive ok
-	case TTN_SUCCESSFUL_RECEIVE:
-	  return 0;
-
-	case TTN_UNSUCESSFUL_RECEIVE:
-	  // probably busy
-	  return 1;
-
-	default:
-	case TTN_ERROR_UNEXPECTED_RESPONSE:
-	  debugSerial.println("Unable to send payload!\n");
-	  return -1;
-
-	case TTN_ERROR_SEND_COMMAND_FAILED:
-	  return -2;
-	}
+	return evaluateResponse(ret);
 }
 
 /*
@@ -210,28 +212,7 @@ int LoRaMgmtSend(){
 int LoRaMgmtPoll(){
 	ttn_response_t ret = ttn.poll(1, conf);
 
-	switch (ret) {
-
-	  // TX only
-	case TTN_SUCCESSFUL_TRANSMISSION:
-	  // ACK receive ok
-	case TTN_SUCCESSFUL_RECEIVE:
-	  return 0;
-
-	case TTN_UNSUCESSFUL_RECEIVE:
-	  // probably busy
-	  return 1;
-
-	default:
-	case TTN_ERROR_UNEXPECTED_RESPONSE:
-	  debugSerial.println("Unable to send payload!\n");
-	  return -1;
-
-	case TTN_ERROR_SEND_COMMAND_FAILED:
-	  return -2;
-	}
-
-	return 0;
+	return evaluateResponse(ret);
 }
 
 /*************** MANAGEMENT FUNCTIONS ********************/
