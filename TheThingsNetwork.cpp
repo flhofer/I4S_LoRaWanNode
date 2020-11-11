@@ -358,7 +358,7 @@ uint8_t TheThingsNetwork::getSF()
   return 0;
 }
 
-unsigned long TheThingsNetwork::getFrequency()
+uint32_t TheThingsNetwork::getFrequency()
 {
   if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_FREQ, buffer, sizeof(buffer)) > 0) {
     return atol(buffer);
@@ -366,15 +366,15 @@ unsigned long TheThingsNetwork::getFrequency()
   return 0;
 }
 
-unsigned long TheThingsNetwork::getRxBW()
+uint32_t TheThingsNetwork::getRxBW()
 {
   if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_RXBW, buffer, sizeof(buffer)) > 0) {
-    return (unsigned long)(atof(buffer) *1000); // float kHz -> uint Hz
+    return (uint32_t)(atof(buffer) *1000); // float kHz -> uint Hz
   }
   return 0;
 }
 
-unsigned long TheThingsNetwork::getWatchDogTimer()
+uint32_t TheThingsNetwork::getWatchDogTimer()
 {
   if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_WDT, buffer, sizeof(buffer)) > 0) {
     return atol(buffer);
@@ -763,7 +763,7 @@ ttn_response_t TheThingsNetwork::poll(port_t port, bool confirm)
       // Class C: check rx buffer for any received data
       memset(buffer, 0, sizeof(buffer));
 
-      long timeout = this->modemStream->getTimeout();
+      uint32_t timeout = this->modemStream->getTimeout();
       this->modemStream->setTimeout(100);
       this->modemStream->readBytesUntil('\n', buffer, sizeof(buffer));
       this->modemStream->setTimeout(timeout);
@@ -787,6 +787,7 @@ ttn_response_t TheThingsNetwork::poll(port_t port, bool confirm)
         }
         return TTN_SUCCESSFUL_RECEIVE;
       }
+      return TTN_UNSUCESSFUL_RECEIVE;
     }
     // no break
 
