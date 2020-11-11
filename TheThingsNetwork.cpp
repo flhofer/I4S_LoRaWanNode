@@ -1038,7 +1038,7 @@ void TheThingsNetwork::configureChannels(uint8_t fsb)
   sendMacSet(MAC_RETX, TTN_RETX);
 }
 
-bool TheThingsNetwork::reconfigureChannel(uint8_t ch, uint32_t freq, uint8_t drmin, uint8_t drmax){
+bool TheThingsNetwork::setChannel(uint8_t ch, uint32_t freq, uint8_t drmin, uint8_t drmax){
 
   bool done = true;
 
@@ -1059,7 +1059,7 @@ bool TheThingsNetwork::reconfigureChannel(uint8_t ch, uint32_t freq, uint8_t drm
   return done;
 }
 
-bool TheThingsNetwork::reconfigureRx2Channel(uint32_t freq, uint8_t dr){
+bool TheThingsNetwork::setRx2Channel(uint32_t freq, uint8_t dr){
 
   char buf[15];
   sprintf(buf, "%u %lu", dr, freq);
