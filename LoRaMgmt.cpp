@@ -27,7 +27,8 @@ static TheThingsNetwork ttn(loraSerial, debugSerial,
 static bool conf = false;			// use confirmed messages
 static int dataLen = 1; 			// TX data length for tests
 static unsigned long rnd_contex;	// pseudo-random generator context (for reentrant)
-static unsigned long rxWindow = 1000; // pause duration in ms between tx and rx TODO: get parameter
+static unsigned long rxWindow1 = 1000; // pause duration in ms between tx and rx TODO: get parameter
+static unsigned long rxWindow2 = 2000; // pause duration in ms between tx and rx2 TODO: get parameter
 static unsigned long wdt;			// watch-dog timeout timer value, 15000 default
 
 static sLoRaResutls_t lastResults;	// Last results of test
@@ -141,7 +142,7 @@ static void onAfterTx(){
  */
 static void onAfterRx(){
 	lastResults.timeToRx = getTimer();
-	lastResults.timeRx = lastResults.timeToRx - lastResults.timeTx - rxWindow;
+	lastResults.timeRx = lastResults.timeToRx - lastResults.timeTx - rxWindow1;
 	if (!debug)
 		return;
 
@@ -247,7 +248,6 @@ sLoRaResutls_t * LoRaMgmtGetResults(){
 	lastResults.txBW = ttn.getBW();
 	lastResults.txSF = ttn.getSF();
 	lastResults.txFrq = ttn.getFrequency();
-	lastResults.rxBw = ttn.getRxBW();
 	lastResults.txPwr = ttn.getPower();
 	lastResults.rxRssi = ttn.getRSSI();
 	lastResults.rxSnr = ttn.getSNR();
@@ -284,6 +284,9 @@ void LoRaMgmtSetup(){
 
 	debugSerial.print("Watchdog timer set to [ms] ");
 	debugSerial.println(wdt);
+
+	// set to LorIoT standard RX, DR = 0
+	ttn.setRx2Channel(869525000, 0);
 }
 
 /*

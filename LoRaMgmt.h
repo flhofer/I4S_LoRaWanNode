@@ -14,11 +14,10 @@
 
 //TODO: change to STDINT formats
 typedef struct sLoRaResutls {
-	unsigned long timeTx;
-	unsigned long timeRx;
-	unsigned long timeToRx;
-	unsigned long txFrq;	// current used frequency
-	unsigned long rxBw;		// receive bandwidth in kHz (float)
+	uint32_t timeTx;
+	uint32_t timeRx;
+	uint32_t timeToRx;
+	uint32_t txFrq;			// current used frequency
 	uint8_t lastCR;			// Coding rate 4/x
 	uint8_t txBW;			// current bandwidth in kHz
 	uint8_t txSF;			// Tx spread factor, SF7 to 12

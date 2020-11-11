@@ -114,7 +114,6 @@ public:
   uint8_t getCR();
   uint8_t getSF();
   uint32_t getFrequency();
-  uint32_t getRxBW();
   uint32_t getWatchDogTimer();
   int8_t getPower();
   int8_t getRSSI();

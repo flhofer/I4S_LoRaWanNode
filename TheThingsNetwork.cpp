@@ -366,14 +366,6 @@ uint32_t TheThingsNetwork::getFrequency()
   return 0;
 }
 
-uint32_t TheThingsNetwork::getRxBW()
-{
-  if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_RXBW, buffer, sizeof(buffer)) > 0) {
-    return (uint32_t)(atof(buffer) *1000); // float kHz -> uint Hz
-  }
-  return 0;
-}
-
 uint32_t TheThingsNetwork::getWatchDogTimer()
 {
   if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_WDT, buffer, sizeof(buffer)) > 0) {
