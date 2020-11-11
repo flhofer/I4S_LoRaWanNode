@@ -136,10 +136,8 @@ static int pollcnt;			// un-conf poll retries
  */
 static void
 writeSyncState(int syncCode){
-
-	;
+	PORTB = (PORTB & 0x0F) | (syncCode << 4);
 }
-
 
 /*
  * runTest: test runner
@@ -173,8 +171,8 @@ runTest(testParam_t * testNow){
 		pollcnt=0;
 
 		tstate = rStart;
-		// no break
 		// fall-through
+		// @suppress("No break at end of case")
 
 	case rStart:
 
@@ -186,8 +184,8 @@ runTest(testParam_t * testNow){
 			}
 
 		tstate = rRun;
-		// no break
 		// fall-through
+		// @suppress("No break at end of case")
 
 	case rRun:
 
@@ -211,8 +209,8 @@ runTest(testParam_t * testNow){
 		}
 
 		tstate = rStop;
-		// no break
 		// fall-through
+		// @suppress("No break at end of case")
 
 	case rStop:
 		if (testNow->stop)
@@ -220,8 +218,8 @@ runTest(testParam_t * testNow){
 				break;
 
 		tstate = rEvaluate;
-		// no break
 		// fall-through
+		// @suppress("No break at end of case")
 
 	case rEvaluate:
 		if (testNow->evaluate)
@@ -263,8 +261,8 @@ runTest(testParam_t * testNow){
 		}
 
 		tstate = rReset;
-		// no break
 		// fall-through
+		// @suppress("No break at end of case")
 
 	case rReset:
 		if (testNow->reset)
@@ -348,7 +346,8 @@ selectTest(){
 
 void initVariant(){
 	// board dependent settings for cross-compatibility
-	;
+	DDRB = 0xF0;
+	PORTB = 0x00;
 }
 
 void setup()
