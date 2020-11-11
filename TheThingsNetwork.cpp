@@ -1038,7 +1038,7 @@ bool TheThingsNetwork::setChannel(uint8_t ch, uint32_t freq, uint8_t drmin, uint
 	  return false;
 
   if (freq){
-	char buf[10];
+	char buf[11];
 	sprintf(buf, "%lu", freq);
 	done &= sendChSet(MAC_CHANNEL_FREQ, ch, buf);
   }
@@ -1068,6 +1068,11 @@ bool TheThingsNetwork::setChannelStatus (uint8_t ch, bool status){
   return sendChSet(MAC_CHANNEL_STATUS, ch, buf);
 }
 
+bool TheThingsNetwork::setPowerIndex(uint8_t idx){
+  char buf[4];
+  sprintf(buf, "%u",idx);
+  return sendMacSet(MAC_PWRIDX, buf);
+}
 
 bool TheThingsNetwork::setSF(uint8_t sf)
 {

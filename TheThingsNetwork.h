@@ -139,6 +139,7 @@ public:
   bool setChannel(uint8_t ch, uint32_t freq = 0l, uint8_t drmin = 255, uint8_t drmax = 255);
   bool setRx2Channel(uint32_t freq, uint8_t dr);
   bool setChannelStatus (uint8_t ch, bool status);
+  bool setPowerIndex(uint8_t idx);
 };
 
 #endif
