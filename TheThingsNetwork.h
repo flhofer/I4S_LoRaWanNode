@@ -137,7 +137,7 @@ public:
   void linkCheck(uint16_t seconds);
   uint8_t getLinkCheckGateways();
   uint8_t getLinkCheckMargin();
-  bool reconfChannel(uint8_t ch, uint32_t freq = 0l, uint8_t drmin = 255, uint8_t drmax = 255);
+  bool reconfigureChannel(uint8_t ch, uint32_t freq = 0l, uint8_t drmin = 255, uint8_t drmax = 255);
   bool setChannelStatus (uint8_t ch, bool status);
 };
 
