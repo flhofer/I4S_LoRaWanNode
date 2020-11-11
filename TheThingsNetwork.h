@@ -56,6 +56,23 @@ enum lorawan_class_t
   CLASS_C
 };
 
+enum ttn_response_code_t
+{
+	TTN_OK,
+	TTN_ERR_BUSY = (-1),
+	TTN_ERR_FRMCNT = (-2),
+	TTN_ERR_INVCLS = (-3),
+	TTN_ERR_INVDLEN = (-4),
+	TTN_ERR_INVPAR = (-5),
+	TTN_ERR_NKEYINT = (-6),
+	TTN_ERR_MACPAUSE = (-7),
+	TTN_ERR_NKYMLTCST = (-8),
+	TTN_ERR_NFRCHN = (-9),
+	TTN_ERR_NJOIN = (-10),
+	TTN_ERR_SILENT = (-11),
+	TTN_ERR_ERR = (-12),
+};
+
 class TheThingsNetwork
 {
 private:
@@ -118,6 +135,7 @@ public:
   int8_t getPower();
   int8_t getRSSI();
   int8_t getSNR();
+  ttn_response_code_t getLastError();
   void onMessage(void (*cb)(const uint8_t *payload, size_t size, port_t port));
   void onBeforeTx(void (*cb)(void));
   void onAfterTx(void (*cb)(void));
