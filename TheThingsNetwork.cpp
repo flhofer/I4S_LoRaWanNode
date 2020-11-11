@@ -366,10 +366,10 @@ unsigned long TheThingsNetwork::getFrequency()
   return 0;
 }
 
-uint8_t TheThingsNetwork::getRxBW()
+unsigned long TheThingsNetwork::getRxBW()
 {
   if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_RXBW, buffer, sizeof(buffer)) > 0) {
-    return atoi(buffer);
+    return (unsigned long)(atof(buffer) *1000); // float kHz -> uint Hz
   }
   return 0;
 }

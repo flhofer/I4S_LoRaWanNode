@@ -113,8 +113,8 @@ public:
   uint8_t getBW();
   uint8_t getCR();
   uint8_t getSF();
-  unsigned long getFrequency(); // TODO: fix return type to STDINT
-  uint8_t getRxBW();
+  unsigned long getFrequency(); 	// TODO: fix return type to STDINT
+  unsigned long getRxBW();			// TODO: fix return type to STDINT
   unsigned long getWatchDogTimer(); // TODO: fix return type to STDINT
   int8_t getPower();
   int8_t getRSSI();
