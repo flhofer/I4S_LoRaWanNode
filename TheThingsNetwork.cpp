@@ -1059,6 +1059,13 @@ bool TheThingsNetwork::reconfigureChannel(uint8_t ch, uint32_t freq, uint8_t drm
   return done;
 }
 
+bool TheThingsNetwork::reconfigureRx2Channel(uint32_t freq, uint8_t dr){
+
+  char buf[15];
+  sprintf(buf, "%u %lu", dr, freq);
+  return sendMacSet(MAC_RX2, "3 869525000");
+}
+
 bool TheThingsNetwork::setChannelStatus (uint8_t ch, bool status){
   if (ch > 15)
 	return false;
