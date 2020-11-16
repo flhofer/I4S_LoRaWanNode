@@ -444,14 +444,14 @@ int8_t TheThingsNetwork::getSNR()
 
 ttn_response_code_t TheThingsNetwork::getLastError(){
 
-	int match;
-	for (int pos=0; pos <= CMPERR_LAST; pos++){
+	int match, pos;
+	for (pos=0; pos <= CMPERR_LAST; pos++){
 		match = pgmstrcmp(buffer, pos, CMPERR_TABLE);
-		if (match != 0)
+		if (match == 0)
 			break;
 	}
 
-	return (ttn_response_code_t)(-1* match); // code order is equal
+	return (ttn_response_code_t)(-1* pos); // code order is equal
 }
 
 void TheThingsNetwork::debugPrintIndex(uint8_t index, const char *value)
@@ -792,19 +792,22 @@ ttn_response_t TheThingsNetwork::sendBytes(const uint8_t *payload, size_t length
   return TTN_ERROR_UNEXPECTED_RESPONSE;
 }
 
-ttn_response_t TheThingsNetwork::poll(port_t port, bool confirm)
+ttn_response_t TheThingsNetwork::poll(port_t port, bool confirm, bool modem)
 {
   switch(lw_class)
   {
 
   case CLASS_A:
+	  if (!modem)
     {
       // Class A: send uplink and wait for rx windows
       uint8_t payload[] = {0x00};
       return sendBytes(payload, 1, port, confirm);
     }
 
-  // case CLASS_B: // Not yet supported. Use default case.
+
+	 // case CLASS_B: // Not yet supported. Use default case.
+	 // no break
 
   case CLASS_C:
     {
