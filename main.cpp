@@ -13,7 +13,7 @@
 #include "LoRaMgmt.h"			// LoRaWan modem management
 
 #define UNCF_POLL	5			// How many times to poll
-#define UNCF_RETRY	5			// Hoe many times retry to send unconfirmed message
+#define TST_RETRY	5			// Hoe many times retry to send unconfirmed message
 #define RESFREEDEL	30000		// ~resource freeing delay ETSI requirement air-time reduction
 
 /* EEPROM address */
@@ -177,13 +177,25 @@ runTest(testParam_t * testNow){
 	case rStart:
 
 		if (testNow->start)
-			if ((ret = testNow->start()) && ret!=1){ // next if modem is busy
-				if (ret == -2)
-					delay(RESFREEDEL/actChan); // test if busy= sent anyway
+			if ((ret = testNow->start()) && ret != 1){ // next if modem is busy
+				if (-9 == ret) // no chn -> pause for free-delay / active channels
+					delay(RESFREEDEL/actChan);
+				else
+					delay(100); // simple retry timer 100ms, e.g. busy
 				break;
 			}
 
-		tstate = rRun;
+		debugSerial.print("Continue ");
+		// sent but no response from confirmed, or not confirmed msg, goto poll
+		if (ret == 1 || !confirmed){
+			tstate = rRun;
+			debugSerial.println("poll for answer");
+		}
+		else {
+			debugSerial.println("next test");
+			tstate = rStop;
+			break;
+		}
 		// fall-through
 		// @suppress("No break at end of case")
 
@@ -191,22 +203,18 @@ runTest(testParam_t * testNow){
 
 		if (testNow->run)
 			if ((ret = testNow->run()) && (pollcnt < UNCF_POLL || confirmed)){
-				pollcnt++; // TODO: differentiate no response with not possible to tx/rx.
+				if (-9 == ret) // no chn -> pause for free-delay / active channels
+					delay(RESFREEDEL/actChan);
+				else if (1 == ret)
+					pollcnt++;
+				else
+					delay(100); // simple retry timer 100ms, e.g. busy
 				break;
 			}
 
-		// Unconf polling ended and still busy? -> no response during poll retries
-		if (ret == 1 && !confirmed){
+		// Unconf polling ended and still no response, or confirmed and error message (end of retries)
+		if ((!confirmed && 1 == ret) || (confirmed && 0 != ret))
 			debugSerial.println("Poll - No response from server.");
-			retries++;
-			pollcnt=0;
-			if (UNCF_RETRY > retries){
-				tstate = rStart;
-				delay(RESFREEDEL/actChan); // delay for modem resource free
-				break;
-			}
-
-		}
 
 		tstate = rStop;
 		// fall-through
@@ -216,6 +224,15 @@ runTest(testParam_t * testNow){
 		if (testNow->stop)
 			if ((ret = testNow->stop()))
 				break;
+
+		retries++;
+		pollcnt=0;
+
+		if (TST_RETRY > retries){
+			tstate = rStart;
+			delay(RESFREEDEL/actChan); // delay for modem resource free
+			break;
+		}
 
 		tstate = rEvaluate;
 		// fall-through
