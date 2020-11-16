@@ -170,13 +170,14 @@ evaluateResponse(int ret){
 	case TTN_SUCCESSFUL_RECEIVE:
 	  return 0;
 
+	case TTN_UNSUCESSFUL_RECEIVE:
+	  return 1; // Maybe still outstanding response
+
 	default:
 	case TTN_ERROR_UNEXPECTED_RESPONSE:
 	  debugSerial.println("Unable to send payload!\n");
 	  return -999;
 
-	case TTN_UNSUCESSFUL_RECEIVE:
-		  // probably busy
 	case TTN_ERROR_SEND_COMMAND_FAILED:
 	  return (int)ttn.getLastError(); // transform error code to int -> forward to main
 	}
