@@ -346,8 +346,12 @@ selectTest(){
 
 void initVariant(){
 	// board dependent settings for cross-compatibility
-	DDRB = 0xF0;
+	DDRB |= 0xF0;
 	PORTB = 0x00;
+
+	// Led 13 out
+	DDRC |= 0x80;
+	PORTC &= 0x7F;
 }
 
 void setup()
@@ -358,18 +362,23 @@ void setup()
 		// setup serial for debug, disable if no connection after 10 seconds
 		debugSerial.begin(9600);
 		int waitSE = 999;	// wait for 10 seconds, -10 ms for computation
-		while (!debugSerial && ((waitSE))) {
-		  // delay(10); -- Included in Serial_::operator()
+		while (!debugSerial && waitSE) {
+		  //delay(10);// -- Included in Serial_::operator()
 		  waitSE--;
 		}
-		debug &= waitSE;	// reset debug flag if time is elapsed
+		debug = ((waitSE));	// reset debug flag if time is elapsed
 	}
+
+	// Blink once PIN13 to show program start
+	PORTC |= (0x01 << PINC7);
+	delay (500);
+	PORTC &= ~(0x01 << PINC7);
 
 	uint8_t val = 0;
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
 		val = eeprom_read_byte(&ee_bootCnt);
 	}
-
+	
 	debugSerial.print("Reboot counter read from device: ");
 	debugSerial.println(val);
 
