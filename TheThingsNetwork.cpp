@@ -813,7 +813,9 @@ ttn_response_t TheThingsNetwork::poll(port_t port, bool confirm)
 
       uint32_t timeout = this->modemStream->getTimeout();
       this->modemStream->setTimeout(100);
-      this->modemStream->readBytesUntil('\n', buffer, sizeof(buffer));
+      if (this->modemStream->readBytesUntil('\n', buffer, sizeof(buffer))
+    	&& (afterRxCallback))
+    	  	  afterRxCallback();
       this->modemStream->setTimeout(timeout);
 
       if (pgmstrcmp(buffer, CMP_MAC_RX) == 0)
