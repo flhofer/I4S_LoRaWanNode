@@ -30,6 +30,7 @@ static unsigned long rnd_contex;	// pseudo-random generator context (for reentra
 static unsigned long rxWindow1 = 1000; // pause duration in ms between tx and rx TODO: get parameter
 static unsigned long rxWindow2 = 2000; // pause duration in ms between tx and rx2 TODO: get parameter
 static unsigned long wdt;			// watch-dog timeout timer value, 15000 default
+static unsigned long pollTstamp;	// last poll time-stamp
 
 static sLoRaResutls_t lastResults;	// Last results of test
 
@@ -200,6 +201,7 @@ int LoRaMgmtSend(){
 
 	// Send it off
 	ttn_response_t ret = ttn.sendBytes(payload, sizeof(payload), 1, conf);
+	pollTstamp = millis();
 	return evaluateResponse(ret);
 }
 
@@ -211,7 +213,15 @@ int LoRaMgmtSend(){
  * Return:	  status of polling, 0 ok, -1 error, 1 busy
  */
 int LoRaMgmtPoll(){
-	ttn_response_t ret = ttn.poll(1, conf);
+	// set modem to true to read only modem.
+
+	// compute time, wait for window length at least seconds, aware of unsigned
+	unsigned long wait = (rxWindow1 + rxWindow2) - min(rxWindow1 + rxWindow2, (millis() - pollTstamp));
+	delay(wait);
+
+	ttn_response_t ret = ttn.poll(1, conf, conf);
+
+	pollTstamp = millis();
 
 	return evaluateResponse(ret);
 }
