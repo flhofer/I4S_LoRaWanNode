@@ -48,11 +48,8 @@ static int
 TT_InitMono(){
 
 	// Setup channels to MonoChannel
-	debugSerial.println("Init - channel config");
-
 	actChan = 1;
 	return LoRaSetChannels(0x01); // Enable channel 1 only;
-
 }
 
 static int
@@ -171,6 +168,7 @@ runTest(testParam_t * testNow){
 		pollcnt=0;
 
 		tstate = rStart;
+		debugSerial.println("Start");
 		// fall-through
 		// @suppress("No break at end of case")
 
@@ -189,11 +187,11 @@ runTest(testParam_t * testNow){
 		// sent but no response from confirmed, or not confirmed msg, goto poll
 		if (ret == 1 || !confirmed){
 			tstate = rRun;
-			debugSerial.println("poll for answer");
+			debugSerial.println("Poll for answer");
 		}
 		else {
-			debugSerial.println("next test");
 			tstate = rStop;
+			debugSerial.println("Stop test");
 			break;
 		}
 		// fall-through
@@ -217,6 +215,7 @@ runTest(testParam_t * testNow){
 			debugSerial.println("Poll - No response from server.");
 
 		tstate = rStop;
+		debugSerial.println("Stop test");
 		// fall-through
 		// @suppress("No break at end of case")
 
@@ -230,11 +229,13 @@ runTest(testParam_t * testNow){
 
 		if (TST_RETRY > retries){
 			tstate = rStart;
+			debugSerial.println("Retry");
 			delay(RESFREEDEL/actChan); // delay for modem resource free
 			break;
 		}
 
 		tstate = rEvaluate;
+		debugSerial.println("Evaluate");
 		// fall-through
 		// @suppress("No break at end of case")
 
@@ -243,7 +244,7 @@ runTest(testParam_t * testNow){
 			if ((ret = testNow->evaluate()))
 				break;
 
-		debugSerial.println("Evaluate - add measurement");
+		debugSerial.println(" - add measurement");
 
 //		if (!realloc(testNow->results, (testNow->resultsSize+1) * sizeof(unsigned long) )){
 //			debugSerial.println("re-alloc error!"); // TODO: avoid dynamic memory allocation
@@ -274,10 +275,13 @@ runTest(testParam_t * testNow){
 		// Test repeats?
 		if (--testNow->counter <= 0){
 			tstate = rEnd;
+			debugSerial.println("End test");
 			break;
 		}
 
 		tstate = rReset;
+		debugSerial.println("Reset");
+
 		// fall-through
 		// @suppress("No break at end of case")
 
@@ -288,7 +292,8 @@ runTest(testParam_t * testNow){
 
 		//delay(RESFREEDEL/actChan); // delay for modem resource free
 		tstate = rInit;
-		// no break
+		debugSerial.println("Restart - Init");
+		break;
 
 	default:
 	case rEnd:
