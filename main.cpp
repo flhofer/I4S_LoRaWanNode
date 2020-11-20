@@ -270,10 +270,14 @@ runTest(testParam_t * testNow){
 		if (!testNow->results)
 			testNow->results = testResultNow; // apply to first
 
-		// Copy results to local counters, starts at the end
-		(void)memcpy(testResultNow, res, sizeof(sLoRaResutls_t));
-		testNow->resultsSize++;
-		testResultNow++;
+		if (testResultNow < &testResults[TST_MXRSLT]){
+			// Copy results to local counters, starts at the end
+			(void)memcpy(testResultNow, res, sizeof(sLoRaResutls_t));
+			testNow->resultsSize++;
+			testResultNow++;
+		}
+		else
+			debugSerial.println("*** STORAGE FULL ***\r\nNo space for further results");
 
 		// Test repeats?
 		if (--testNow->counter <= 0){
