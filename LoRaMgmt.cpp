@@ -118,21 +118,7 @@ static void onBeforeTx(){
  * Return:	  -
  */
 static void onAfterTx(){
-
 	lastResults.timeTx = getTimer();
-	if (!debug)
-		return;
-
-	debugSerial.print("Time TX: ");
-	debugSerial.print(lastResults.timeTx / 1000);
-	debugSerial.print(".");
-	int fact = lastResults.timeTx % 1000;
-	if (fact <100)
-		debugSerial.print("0");
-	if (fact <10)
-		debugSerial.print("0");
-	debugSerial.print(fact);
-	debugSerial.println(" ms");
 }
 
 /*
@@ -146,20 +132,6 @@ static void onAfterRx(){
 	lastResults.timeRx = lastResults.timeToRx - lastResults.timeTx - rxWindow1;
 	if (lastResults.timeRx > 1000)
 		lastResults.timeRx -= rxWindow2;
-
-	if (!debug)
-		return;
-
-	debugSerial.print("Time RX: ");
-	debugSerial.print(lastResults.timeRx / 1000);
-	debugSerial.print(".");
-	int fact = lastResults.timeRx % 1000;
-	if (fact <100)
-		debugSerial.print("0");
-	if (fact <10)
-		debugSerial.print("0");
-	debugSerial.print(fact);
-	debugSerial.println(" ms");
 }
 
 /*************** TEST SEND FUNCTIONS ********************/

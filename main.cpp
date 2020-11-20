@@ -45,6 +45,22 @@ typedef struct _testParam{
 	int (*reset)(void);		// Reset steps for a new run
 } testParam_t;
 
+/*************** MIXED STUFF ********************/
+
+static void
+printScaled(uint32_t value, uint32_t Scale = 1000){
+	debugSerial.print(value / Scale);
+	debugSerial.print(".");
+	value %= Scale;
+	Scale /=10;
+	while (value < Scale){
+		debugSerial.print("0");
+		Scale /=10;
+	}
+	if (value != 0)
+		debugSerial.print(value);
+}
+
 /*************** TEST FUNCTION CALL ********************/
 
 static int
@@ -266,6 +282,18 @@ runTest(testParam_t * testNow){
 		debugSerial.print(res->rxRssi);
 		debugSerial.print(" snr ");
 		debugSerial.println(res->rxSnr);
+
+		debugSerial.print("Time TX: ");
+		printScaled(res->timeTx);
+		debugSerial.println(" ms");
+
+		debugSerial.print("Time RX: ");
+		printScaled(res->timeRx);
+		debugSerial.println(" ms");
+
+		debugSerial.print("Time Total: ");
+		printScaled(res->timeToRx);
+		debugSerial.println(" ms");
 
 		if (!testNow->results)
 			testNow->results = testResultNow; // apply to first
