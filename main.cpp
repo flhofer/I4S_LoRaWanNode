@@ -13,7 +13,8 @@
 #include "LoRaMgmt.h"			// LoRaWan modem management
 
 #define UNCF_POLL	5			// How many times to poll
-#define TST_RETRY	5			// Hoe many times retry to send unconfirmed message
+#define TST_RETRY	5			// How many times retry to send message
+#define TST_MXRSLT	40			// What's the max number of test results we allow?
 #define RESFREEDEL	30000		// ~resource freeing delay ETSI requirement air-time reduction
 
 /* EEPROM address */
@@ -23,6 +24,8 @@
 /* Locals 		*/
 
 static uint8_t actChan = 16;		// active channels
+static sLoRaResutls_t testResults[TST_MXRSLT];	// Storage for test results
+static sLoRaResutls_t * testResultNow;
 
 /* 	Globals		*/
 
@@ -30,7 +33,7 @@ int debug = 1;
 
 // Test data structure
 typedef struct _testParam{
-	unsigned long *results;	// Data points TODO: change to LL
+	sLoRaResutls_t *results;// Data points
 	size_t resultsSize;		// size of data points
 	int counter;			// How many times to repeat
 	int syncCode;			// DO sync code with jamming devices
@@ -79,7 +82,7 @@ static testParam_t testA2 = {
 	NULL,
 	NULL,
 	NULL,
-	NULL
+	NULL,
 };
 
 // Test group definition
@@ -246,14 +249,6 @@ runTest(testParam_t * testNow){
 
 		debugSerial.println(" - add measurement");
 
-//		if (!realloc(testNow->results, (testNow->resultsSize+1) * sizeof(unsigned long) )){
-//			debugSerial.println("re-alloc error!"); // TODO: avoid dynamic memory allocation
-//			return rError;
-//		}
-//
-//		testNow->results[testNow->resultsSize] = LoRaMgmtGetTime();
-//		testNow->resultsSize++;
-
 		sLoRaResutls_t * res;
 		res =  LoRaMgmtGetResults();
 		debugSerial.print("CR 4/");
@@ -271,6 +266,14 @@ runTest(testParam_t * testNow){
 		debugSerial.print(res->rxRssi);
 		debugSerial.print(" snr ");
 		debugSerial.println(res->rxSnr);
+
+		if (!testNow->results)
+			testNow->results = testResultNow; // apply to first
+
+		// Copy results to local counters, starts at the end
+		(void)memcpy(testResultNow, res, sizeof(sLoRaResutls_t));
+		testNow->resultsSize++;
+		testResultNow++;
 
 		// Test repeats?
 		if (--testNow->counter <= 0){
@@ -413,6 +416,7 @@ void setup()
 
 	tgrp = &testConfig[0]; 	// assign pointer to pointer to TestgroupA
 	tno = *tgrp; 			// assign pointer to pointer to test 1
+	testResultNow = &testResults[0]; // Init results pointer
 
 	startTs = millis();		// snapshot starting time
 }
