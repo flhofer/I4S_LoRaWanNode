@@ -296,34 +296,33 @@ runTest(testParam_t * testNow){
 		debugSerial.println(" - add measurement");
 
 		sLoRaResutls_t * res;
+		char buf[14];
 		res =  LoRaMgmtGetResults();
-		debugSerial.print("CR 4/");
+		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLCR]))));
 		debugSerial.print(res->lastCR);
-		debugSerial.print(" SF ");
+		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLSF]))));
 		debugSerial.print(res->txSF);
-		debugSerial.print(" BW ");
+		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLBW]))));
 		debugSerial.print(res->txBW);
 		debugSerial.println("kHz ");
-		debugSerial.print("Freq [hz] ");
+		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLFRQ]))));
 		debugSerial.print(res->txFrq);
-		debugSerial.print(" pwr [dBm] ");
+		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLPWR]))));
 		debugSerial.print(res->txPwr);
-		debugSerial.print(" rssi ");
+		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLRSSI]))));
 		debugSerial.print(res->rxRssi);
-		debugSerial.print(" snr ");
+		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLSNR]))));
 		debugSerial.println(res->rxSnr);
 
-		debugSerial.print("Time TX: ");
+		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLTTX]))));
 		printScaled(res->timeTx);
-		debugSerial.println(" ms");
-
-		debugSerial.print("Time RX: ");
+		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLTMS]))));
+		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLTTX]))));
 		printScaled(res->timeRx);
-		debugSerial.println(" ms");
-
-		debugSerial.print("Time Total: ");
+		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLTMS]))));
+		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLTTL]))));
 		printScaled(res->timeToRx);
-		debugSerial.println(" ms");
+		debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLTMS]))));
 
 		if (!testNow->results)
 			testNow->results = testResultNow; // apply to first
