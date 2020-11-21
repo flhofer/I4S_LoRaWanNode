@@ -14,7 +14,7 @@
 
 #define UNCF_POLL	5			// How many times to poll
 #define TST_RETRY	5			// How many times retry to send message
-#define TST_MXRSLT	40			// What's the max number of test results we allow?
+#define TST_MXRSLT	20			// What's the max number of test results we allow?
 #define RESFREEDEL	30000		// ~resource freeing delay ETSI requirement air-time reduction
 
 void initPorts (void) __attribute__ ((naked)) __attribute__ ((section (".init3")));
