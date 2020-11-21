@@ -210,7 +210,6 @@ int LoRaMgmtPoll(){
  * Return:	  ulong with time in ms
  */
 sLoRaResutls_t * LoRaMgmtGetResults(){
-	//TODO: duplicate? in heap and return, or copy in memory
 	lastResults.lastCR = ttn.getCR();
 	lastResults.txBW = ttn.getBW();
 	lastResults.txSF = ttn.getSF();

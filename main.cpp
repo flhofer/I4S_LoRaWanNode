@@ -267,6 +267,10 @@ runTest(testParam_t * testNow){
 		return rError;
 	}
 
+	// reset status on next test
+	if (rEnd == tstate || rError == tstate )
+		tstate = rInit; // we don't call with error/end
+
 	int ret = 0;
 	switch(tstate){
 
@@ -443,7 +447,6 @@ runTest(testParam_t * testNow){
 	return tstate;
 }
 
-// TODO: hide test state from globals
 static testParam_t ** tno = NULL,
 					*** tgrp = NULL;
 
@@ -475,7 +478,6 @@ selectTest(){
 	if ((res == rEnd || res == rError) && *tno){
 		printPrgMem(PRTSTTTBL, PRTSTTSKIPT);
 		tno++;
-		tstate = rInit; // TODO: fix internal
 
 		printPrgMem(PRTSTTTBL, PRTSTTLOOP);
 
