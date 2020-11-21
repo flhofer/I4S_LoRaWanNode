@@ -17,6 +17,8 @@
 #define TST_MXRSLT	40			// What's the max number of test results we allow?
 #define RESFREEDEL	30000		// ~resource freeing delay ETSI requirement air-time reduction
 
+void initPorts (void) __attribute__ ((naked)) __attribute__ ((section (".init3")));
+
 /* EEPROM address */
 
  uint8_t EEMEM ee_bootCnt;	// reboot counter
@@ -363,8 +365,7 @@ selectTest(){
 	if (!*tgrp){
 		debugSerial.println("End of test groups");
 
-		while(1); // END PROGRAM HERE
-		return;
+		exit(1); // END PROGRAM HERE
 	}
 
 	enum testRun res = runTest(*tno);
@@ -401,7 +402,7 @@ selectTest(){
 
 /*************** SYSTEM SETUP AND LOOP *****************/
 
-void initVariant(){
+void initPorts(){
 	// board dependent settings for cross-compatibility
 	DDRB |= 0xF0;
 	PORTB = 0x00;
