@@ -23,6 +23,34 @@ void initPorts (void) __attribute__ ((naked)) __attribute__ ((section (".init3")
 
  uint8_t EEMEM ee_bootCnt;	// reboot counter
 
+/* PROGMEM string lists */
+
+const char prtTblCR[] PROGMEM = " CR 4/";
+const char prtTblSF[] PROGMEM = " SF ";
+const char prtTblBW[] PROGMEM = " BW [khz] ";
+const char prtTblFrq[] PROGMEM = " Freq [hz] ";
+const char prtTblPwr[] PROGMEM = " pwr [dBm] ";
+const char prtTblRssi[] PROGMEM = " rssi ";
+const char prtTblSnr[] PROGMEM = " snr ";
+const char prtTblTTx[] PROGMEM = " Time TX: ";
+const char prtTblTRx[] PROGMEM = " Time RX: ";
+const char prtTblTTl[] PROGMEM = " Time Total: ";
+const char prtTblTms[] PROGMEM = " ms";
+
+PGM_P const prtTblStr[] = {prtTblCR, prtTblSF, prtTblBW, prtTblFrq, prtTblPwr, prtTblRssi, prtTblSnr, prtTblTTx, prtTblTRx, prtTblTTl, prtTblTms};
+
+#define PRTTBLCR 0
+#define PRTTBLSF 1
+#define PRTTBLBW 2
+#define PRTTBLFRQ 3
+#define PRTTBLPWR 4
+#define PRTTBLRSSI 5
+#define PRTTBLSNR 6
+#define PRTTBLTTX 7
+#define PRTTBLTRX 8
+#define PRTTBLTTL 9
+#define PRTTBLTMS 10
+
 /* Locals 		*/
 
 static uint8_t actChan = 16;		// active channels
