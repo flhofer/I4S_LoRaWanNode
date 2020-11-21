@@ -25,6 +25,50 @@ void initPorts (void) __attribute__ ((naked)) __attribute__ ((section (".init3")
 
 /* PROGMEM string lists */
 
+ const char prtSttReboot [] PROGMEM = "Reboot counter read from device: ";
+ const char prtSttStart [] PROGMEM = "Start test\n";
+ const char prtSttContinue [] PROGMEM = "Continue ";
+ const char prtSttPoll [] PROGMEM = "Poll for answer\n";
+ const char prtSttStop [] PROGMEM = "Stop test\n";
+ const char prtSttRetry [] PROGMEM = "Retry\n";
+ const char prtSttEvaluate [] PROGMEM = "Evaluate\n";
+ const char prtSttAddMeas [] PROGMEM = " - add measurement\n";
+ const char prtSttReset [] PROGMEM = "Reset\n";
+ const char prtSttRestart [] PROGMEM = "Restart - Init\n";
+ const char prtSttEnd [] PROGMEM = "End test\n";
+ const char prtSttPollErr [] PROGMEM = "Poll - No response from server.\n";
+ const char prtSttLoop [] PROGMEM = "-- LOOP 10 Seconds --\n";
+ const char prtSttSkipT [] PROGMEM = "Skip to next test\n";
+ const char prtSttSKipG [] PROGMEM = "Skip to next test group\n";
+ const char prtSttEndG [] PROGMEM = "End of test groups\n";
+ const char prtSttErrExec [] PROGMEM = "ERROR: during state execution\n";
+ const char prtSttErrText [] PROGMEM = "ERROR: test malfunction\n";
+ const char prtSttWrnConf [] PROGMEM = "WARN: Invalid test configuration\n";
+ const char prtSttWrnFull [] PROGMEM = "*** RESULTS STORAGE FULL ***\n";
+
+ PGM_P const prtSttStr[] = {prtSttReboot, prtSttStart, prtSttContinue, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttLoop, prtSttSkipT, prtSttSKipG, prtSttEndG, prtSttErrExec, prtSttErrText, prtSttWrnConf, prtSttWrnFull};
+
+ #define PRTSTTREBOOT 0
+ #define PRTSTTSTART 1
+ #define PRTSTTCONTINUE 2
+ #define PRTSTTPOLL 3
+ #define PRTSTTSTOP 4
+ #define PRTSTTRETRY 5
+ #define PRTSTTEVALUATE 6
+ #define PRTSTTADDMEAS 7
+ #define PRTSTTRESET 8
+ #define PRTSTTRESTART 9
+ #define PRTSTTEND 10
+ #define PRTSTTPOLLERR 11
+ #define PRTSTTLOOP 12
+ #define PRTSTTSKIPT 13
+ #define PRTSTTSKIPG 14
+ #define PRTSTTENDG 15
+ #define PRTSTTERREXEC 16
+ #define PRTSTTERRTEXT 17
+ #define PRTSTTWRNCONF 18
+ #define PRTSTTWRNFULL 19
+
 const char prtTblCR[] PROGMEM = " CR 4/";
 const char prtTblSF[] PROGMEM = " SF ";
 const char prtTblBW[] PROGMEM = " BW [khz] ";
@@ -51,57 +95,14 @@ PGM_P const prtTblStr[] = {prtTblCR, prtTblSF, prtTblBW, prtTblFrq, prtTblPwr, p
 #define PRTTBLTTL 9
 #define PRTTBLTMS 10
 
-
-const char prtSttReboot [] PROGMEM = "Reboot counter read from device: ";
-const char prtSttStart [] PROGMEM = "Start test";
-const char prtSttContinue [] PROGMEM = "Continue ";
-const char prtSttPoll [] PROGMEM = "Poll for answer";
-const char prtSttStop [] PROGMEM = "Stop test";
-const char prtSttRetry [] PROGMEM = "Retry";
-const char prtSttEvaluate [] PROGMEM = "Evaluate";
-const char prtSttAddMeas [] PROGMEM = " - add measurement";
-const char prtSttReset [] PROGMEM = "Reset";
-const char prtSttRestart [] PROGMEM = "Restart - Init";
-const char prtSttEnd [] PROGMEM = "End test";
-const char prtSttPollErr [] PROGMEM = "Poll - No response from server.";
-const char prtSttLoop [] PROGMEM = "-- LOOP 10 Seconds --";
-const char prtSttSkipT [] PROGMEM = "Skip to next test ";
-const char prtSttSKipG [] PROGMEM = "Skip to next test group ";
-const char prtSttEndG [] PROGMEM = "End of test groups";
-const char prtSttErrExec [] PROGMEM = "ERROR: during state execution";
-const char prtSttErrText [] PROGMEM = "ERROR: test malfunction";
-const char prtSttWrnConf [] PROGMEM = "WARN: Invalid test configuration";
-const char prtSttWrnFull [] PROGMEM = "*** RESULTS STORAGE FULL ***";
-
-PGM_P const prtSttStr[] = {prtSttReboot, prtSttStart, prtSttContinue, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttLoop, prtSttSkipT, prtSttSKipG, prtSttEndG, prtSttErrExec, prtSttErrText, prtSttWrnConf, prtSttWrnFull};
-
-#define PRTSTTREBOOT 0
-#define PRTSTTSTART 1
-#define PRTSTTCONTINUE 2
-#define PRTSTTPOLL 3
-#define PRTSTTSTOP 4
-#define PRTSTTRETRY 5
-#define PRTSTTEVALUATE 6
-#define PRTSTTADDMEAS 7
-#define PRTSTTRESET 8
-#define PRTSTTRESTART 9
-#define PRTSTTEND 10
-#define PRTSTTPOLLERR 11
-#define PRTSTTLOOP 12
-#define PRTSTTSKIPT 13
-#define PRTSTTSKIPG 14
-#define PRTSTTENDG 15
-#define PRTSTTERREXEC 16
-#define PRTSTTERRTEXT 17
-#define PRTSTTWRNCONF 18
-#define PRTSTTWRNFULL 19
+#define PRTSTTTBL 0
+#define PRTTBLTBL 1
 
 /* Locals 		*/
 
 static sLoRaResutls_t testResults[TST_MXRSLT];	// Storage for test results
 static sLoRaResutls_t * testResultNow;			// Pointer to actual entry
 static uint8_t actChan = 16;					// active channels
-static char buf[44];							// Glonal print buffer
 
 /* 	Globals		*/
 
@@ -135,6 +136,21 @@ printScaled(uint32_t value, uint32_t Scale = 1000){
 	}
 	if (value != 0)
 		debugSerial.print(value);
+}
+
+static void
+printPrgMem(int tbl, int pos){
+	char buf[46];							// print buffer
+	switch (tbl){
+	default:
+	case PRTSTTTBL:
+		strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[pos])));
+		break;
+	case PRTTBLTBL:
+		strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[pos])));
+		break;
+	}
+	debugSerial.print(buf);
 }
 
 /*************** TEST FUNCTION CALL ********************/
@@ -242,7 +258,7 @@ static enum testRun
 runTest(testParam_t * testNow){
 
 	if (!testNow){
-		debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTWRNCONF]))));
+		printPrgMem(PRTSTTTBL, PRTSTTWRNCONF);
 		return rError;
 	}
 
@@ -263,7 +279,7 @@ runTest(testParam_t * testNow){
 		pollcnt=0;
 
 		tstate = rStart;
-		debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTSTART]))));
+		printPrgMem(PRTSTTTBL, PRTSTTSTART);
 		// fall-through
 		// @suppress("No break at end of case")
 
@@ -278,16 +294,16 @@ runTest(testParam_t * testNow){
 				break;
 			}
 
-		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTCONTINUE]))));
+		printPrgMem(PRTSTTTBL, PRTSTTCONTINUE);
 		// sent but no response from confirmed, or not confirmed msg, goto poll
 		if (ret == 1 || !confirmed){
 			tstate = rRun;
-			debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTPOLL]))));
+			printPrgMem(PRTSTTTBL, PRTSTTPOLL);
 
 		}
 		else {
 			tstate = rStop;
-			debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTSTOP]))));
+			printPrgMem(PRTSTTTBL, PRTSTTSTOP);
 			break;
 		}
 		// fall-through
@@ -308,10 +324,10 @@ runTest(testParam_t * testNow){
 
 		// Unconf polling ended and still no response, or confirmed and error message (end of retries)
 		if ((!confirmed && 1 == ret) || (confirmed && 0 != ret))
-			debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTPOLLERR]))));
+			printPrgMem(PRTSTTTBL, PRTSTTPOLLERR);
 
 		tstate = rStop;
-		debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTSTOP]))));
+		printPrgMem(PRTSTTTBL, PRTSTTSTOP);
 		// fall-through
 		// @suppress("No break at end of case")
 
@@ -325,13 +341,13 @@ runTest(testParam_t * testNow){
 
 		if (TST_RETRY > retries){
 			tstate = rStart;
-			debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTRETRY]))));
+			printPrgMem(PRTSTTTBL, PRTSTTRETRY);
 			delay(RESFREEDEL/actChan); // delay for modem resource free
 			break;
 		}
 
 		tstate = rEvaluate;
-		debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTEVALUATE]))));
+		printPrgMem(PRTSTTTBL, PRTSTTEVALUATE);
 		// fall-through
 		// @suppress("No break at end of case")
 
@@ -340,38 +356,39 @@ runTest(testParam_t * testNow){
 			if ((ret = testNow->evaluate()))
 				break;
 
-		debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTADDMEAS]))));
+		printPrgMem(PRTSTTTBL, PRTSTTADDMEAS);
 
 		sLoRaResutls_t * res;
 		res =  LoRaMgmtGetResults();
 		// pgm_read_word = read char pointer address from PROGMEM pos PRTTBLCR of the string array
 		// strcpy_P = copy char[] from PRROGMEM at that address of PRROGMEM to buf
 		// *.print = print that char to serial
-		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLCR]))));
+		printPrgMem(PRTTBLTBL,PRTTBLCR);
 		debugSerial.print(res->lastCR);
-		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLSF]))));
+		printPrgMem(PRTTBLTBL,PRTTBLSF);
 		debugSerial.print(res->txSF);
-		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLBW]))));
+		printPrgMem(PRTTBLTBL,PRTTBLBW);
 		debugSerial.print(res->txBW);
 		debugSerial.println("kHz ");
-		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLFRQ]))));
+		printPrgMem(PRTTBLTBL,PRTTBLFRQ);
 		debugSerial.print(res->txFrq);
-		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLPWR]))));
+		printPrgMem(PRTTBLTBL,PRTTBLPWR);
 		debugSerial.print(res->txPwr);
-		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLRSSI]))));
+		printPrgMem(PRTTBLTBL,PRTTBLRSSI);
 		debugSerial.print(res->rxRssi);
-		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLSNR]))));
+		printPrgMem(PRTTBLTBL,PRTTBLSNR);
 		debugSerial.println(res->rxSnr);
 
-		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLTTX]))));
+		printPrgMem(PRTTBLTBL,PRTTBLTTX);
 		printScaled(res->timeTx);
-		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLTMS]))));
-		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLTTX]))));
+		printPrgMem(PRTTBLTBL,PRTTBLTMS);
+		printPrgMem(PRTTBLTBL,PRTTBLTTX);
 		printScaled(res->timeRx);
-		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLTMS]))));
-		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLTTL]))));
+		printPrgMem(PRTTBLTBL,PRTTBLTMS);
+		printPrgMem(PRTTBLTBL,PRTTBLTTL);
 		printScaled(res->timeToRx);
-		debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLTMS]))));
+		printPrgMem(PRTTBLTBL,PRTTBLTMS);
+		debugSerial.println();
 
 		if (!testNow->results)
 			testNow->results = testResultNow; // apply to first
@@ -383,17 +400,17 @@ runTest(testParam_t * testNow){
 			testResultNow++;
 		}
 		else
-			debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTWRNFULL]))));
+			printPrgMem(PRTSTTTBL, PRTSTTWRNFULL);
 
 		// Test repeats?
 		if (--testNow->counter <= 0){
 			tstate = rEnd;
-			debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTEND]))));
+			printPrgMem(PRTSTTTBL, PRTSTTEND);
 			break;
 		}
 
 		tstate = rReset;
-		debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTRESET]))));
+		printPrgMem(PRTSTTTBL, PRTSTTRESET);
 
 		// fall-through
 		// @suppress("No break at end of case")
@@ -405,7 +422,7 @@ runTest(testParam_t * testNow){
 
 		//delay(RESFREEDEL/actChan); // delay for modem resource free
 		tstate = rInit;
-		debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTRESTART]))));
+		printPrgMem(PRTSTTTBL, PRTSTTRESTART);
 		break;
 
 	default:
@@ -414,7 +431,7 @@ runTest(testParam_t * testNow){
 	}
 
 	if (ret == -1 ){
-		debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTERREXEC]))));
+		printPrgMem(PRTSTTTBL, PRTSTTERREXEC);
 		tstate = rEnd;
 	}
 
@@ -439,7 +456,7 @@ selectTest(){
 
 	// end of tests groups?
 	if (!*tgrp){
-		debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTENDG]))));
+		printPrgMem(PRTSTTTBL, PRTSTTENDG);
 
 		exit(1); // END PROGRAM HERE
 	}
@@ -447,15 +464,15 @@ selectTest(){
 	enum testRun res = runTest(*tno);
 
 	if (res == rError)
-		debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTERRTEXT]))));
+		printPrgMem(PRTSTTTBL, PRTSTTERRTEXT);
 
 	// test ended
 	if ((res == rEnd || res == rError) && *tno){
-		debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTSKIPT]))));
+		printPrgMem(PRTSTTTBL, PRTSTTSKIPT);
 		tno++;
 		tstate = rInit; // TODO: fix internal
 
-		debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTLOOP]))));
+		printPrgMem(PRTSTTTBL, PRTSTTLOOP);
 
 		// compute time to 10 seconds, aware of unsigned
 		unsigned long wait = 10000 - min(10000, (millis() - startTs));
@@ -468,7 +485,7 @@ selectTest(){
 		if (*tgrp){
 			tgrp++; // next test group
 			tno = *tgrp;
-			debugSerial.println(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTENDG]))));
+			printPrgMem(PRTSTTTBL, PRTSTTENDG);
 			startTs = millis();
 		}
 	}
@@ -513,7 +530,7 @@ void setup()
 		val = eeprom_read_byte(&ee_bootCnt);
 	}
 	
-	debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[PRTSTTREBOOT]))));
+	printPrgMem(PRTSTTTBL,PRTSTTREBOOT);
 	debugSerial.println(val);
 
 //	if (!debug)
