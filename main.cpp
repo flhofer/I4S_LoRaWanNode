@@ -17,6 +17,7 @@
 #define TST_MXRSLT	20			// What's the max number of test results we allow?
 #define RESFREEDEL	30000		// ~resource freeing delay ETSI requirement air-time reduction
 
+// Allocate initPorts in init section3 of code
 void initPorts (void) __attribute__ ((naked)) __attribute__ ((section (".init3")));
 
 /* EEPROM address */
@@ -25,28 +26,28 @@ void initPorts (void) __attribute__ ((naked)) __attribute__ ((section (".init3")
 
 /* PROGMEM string lists */
 
- const char prtSttReboot [] PROGMEM = "Reboot counter read from device: ";
- const char prtSttStart [] PROGMEM = "Start test\n";
- const char prtSttContinue [] PROGMEM = "Continue ";
- const char prtSttPoll [] PROGMEM = "Poll for answer\n";
- const char prtSttStop [] PROGMEM = "Stop test\n";
- const char prtSttRetry [] PROGMEM = "Retry\n";
- const char prtSttEvaluate [] PROGMEM = "Evaluate\n";
- const char prtSttAddMeas [] PROGMEM = " - add measurement\n";
- const char prtSttReset [] PROGMEM = "Reset\n";
- const char prtSttRestart [] PROGMEM = "Restart - Init\n";
- const char prtSttEnd [] PROGMEM = "End test\n";
- const char prtSttPollErr [] PROGMEM = "Poll - No response from server.\n";
- const char prtSttLoop [] PROGMEM = "-- LOOP 10 Seconds --\n";
- const char prtSttSkipT [] PROGMEM = "Skip to next test\n";
- const char prtSttSKipG [] PROGMEM = "Skip to next test group\n";
- const char prtSttEndG [] PROGMEM = "End of test groups\n";
- const char prtSttErrExec [] PROGMEM = "ERROR: during state execution\n";
- const char prtSttErrText [] PROGMEM = "ERROR: test malfunction\n";
- const char prtSttWrnConf [] PROGMEM = "WARN: Invalid test configuration\n";
- const char prtSttWrnFull [] PROGMEM = "*** RESULTS STORAGE FULL ***\n";
+ const char prtSttReboot[] PROGMEM = "Reboot counter read from device: ";
+ const char prtSttStart[] PROGMEM = "Start test\n";
+ const char prtSttContinue[] PROGMEM = "Continue ";
+ const char prtSttPoll[] PROGMEM = "Poll for answer\n";
+ const char prtSttStop[] PROGMEM = "Stop test\n";
+ const char prtSttRetry[] PROGMEM = "Retry\n";
+ const char prtSttEvaluate[] PROGMEM = "Evaluate\n";
+ const char prtSttAddMeas[] PROGMEM = " - add measurement\n";
+ const char prtSttReset[] PROGMEM = "Reset\n";
+ const char prtSttRestart[] PROGMEM = "Restart - Init\n";
+ const char prtSttEnd[] PROGMEM = "End test\n";
+ const char prtSttPollErr[] PROGMEM = "Poll - No response from server.\n";
+ const char prtSttLoop[] PROGMEM = "-- LOOP 10 Seconds --\n";
+ const char prtSttSkipT[] PROGMEM = "Skip to next test\n";
+ const char prtSttSKipG[] PROGMEM = "Skip to next test group\n";
+ const char prtSttEndG[] PROGMEM = "End of test groups\n";
+ const char prtSttErrExec[] PROGMEM = "ERROR: during state execution\n";
+ const char prtSttErrText[] PROGMEM = "ERROR: test malfunction\n";
+ const char prtSttWrnConf[] PROGMEM = "WARN: Invalid test configuration\n";
+ const char prtSttWrnFull[] PROGMEM = "*** RESULTS STORAGE FULL ***\n";
 
- PGM_P const prtSttStr[] = {prtSttReboot, prtSttStart, prtSttContinue, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttLoop, prtSttSkipT, prtSttSKipG, prtSttEndG, prtSttErrExec, prtSttErrText, prtSttWrnConf, prtSttWrnFull};
+ PGM_P const prtSttStr[] PROGMEM = {prtSttReboot, prtSttStart, prtSttContinue, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttLoop, prtSttSkipT, prtSttSKipG, prtSttEndG, prtSttErrExec, prtSttErrText, prtSttWrnConf, prtSttWrnFull};
 
  #define PRTSTTREBOOT 0
  #define PRTSTTSTART 1
@@ -81,7 +82,7 @@ const char prtTblTRx[] PROGMEM = " Time RX: ";
 const char prtTblTTl[] PROGMEM = " Time Total: ";
 const char prtTblTms[] PROGMEM = " ms";
 
-PGM_P const prtTblStr[] = {prtTblCR, prtTblSF, prtTblBW, prtTblFrq, prtTblPwr, prtTblRssi, prtTblSnr, prtTblTTx, prtTblTRx, prtTblTTl, prtTblTms};
+PGM_P const prtTblStr[] PROGMEM = {prtTblCR, prtTblSF, prtTblBW, prtTblFrq, prtTblPwr, prtTblRssi, prtTblSnr, prtTblTTx, prtTblTRx, prtTblTTl, prtTblTms};
 
 #define PRTTBLCR 0
 #define PRTTBLSF 1
@@ -140,17 +141,21 @@ printScaled(uint32_t value, uint32_t Scale = 1000){
 
 static void
 printPrgMem(int tbl, int pos){
-	char buf[46];							// print buffer
+
+	char buf[46];
 	switch (tbl){
-	default:
-	case PRTSTTTBL:
-		strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[pos])));
-		break;
-	case PRTTBLTBL:
-		strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[pos])));
-		break;
+
+		default:
+		case PRTSTTTBL:
+			strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[pos])));
+			break;
+
+		case PRTTBLTBL:
+			strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[pos])));
+			break;
 	}
 	debugSerial.print(buf);
+
 }
 
 /*************** TEST FUNCTION CALL ********************/
