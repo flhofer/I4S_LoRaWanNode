@@ -51,6 +51,51 @@ PGM_P const prtTblStr[] = {prtTblCR, prtTblSF, prtTblBW, prtTblFrq, prtTblPwr, p
 #define PRTTBLTTL 9
 #define PRTTBLTMS 10
 
+
+const char prtSttReboot [] PROGMEM = "Reboot counter read from device: ";
+const char prtSttStart [] PROGMEM = "Start test";
+const char prtSttContinue [] PROGMEM = "Continue ";
+const char prtSttPoll [] PROGMEM = "Poll for answer";
+const char prtSttStop [] PROGMEM = "Stop test";
+const char prtSttRetry [] PROGMEM = "Retry";
+const char prtSttEvaluate [] PROGMEM = "Evaluate";
+const char prtSttAddMeas [] PROGMEM = " - add measurement";
+const char prtSttReset [] PROGMEM = "Reset";
+const char prtSttRestart [] PROGMEM = "Restart - Init";
+const char prtSttEnd [] PROGMEM = "End test";
+const char prtSttPollErr [] PROGMEM = "Poll - No response from server.";
+const char prtSttLoop [] PROGMEM = "-- LOOP 10 Seconds --";
+const char prtSttSkipT [] PROGMEM = "Skip to next test ";
+const char prtSttSKipG [] PROGMEM = "Skip to next test group ";
+const char prtSttEndG [] PROGMEM = "End of test groups";
+const char prtSttErrExec [] PROGMEM = "ERROR: during state execution";
+const char prtSttErrText [] PROGMEM = "ERROR: test malfunction";
+const char prtSttWrnConf [] PROGMEM = "WARN: Invalid test configuration";
+const char prtSttWrnFull [] PROGMEM = "*** RESULTS STORAGE FULL ***";
+
+PGM_P const prtSttStr[] = {prtSttReboot, prtSttStart, prtSttContinue, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttLoop, prtSttSkipT, prtSttSKipG, prtSttEndG, prtSttErrExec, prtSttErrText, prtSttWrnConf, prtSttWrnFull}
+
+#define PRTSTTREBOOT 0
+#define PRTSTTSTART 1
+#define PRTSTTCONTINUE 2
+#define PRTSTTPOLL 3
+#define PRTSTTSTOP 4
+#define PRTSTTRETRY 5
+#define PRTSTTEVALUATE 6
+#define PRTSTTADDMEAS 7
+#define PRTSTTRESET 8
+#define PRTSTTRESTART 9
+#define PRTSTTEND 10
+#define PRTSTTPOLLERR 11
+#define PRTSTTLOOP 12
+#define PRTSTTSKIPT 13
+#define PRTSTTSKIPG 14
+#define PRTSTTENDG 15
+#define PRTSTTERREXEC 16
+#define PRTSTTERRTEXT 17
+#define PRTSTTWRNCONF 18
+#define PRTSTTWRNFULL 19
+
 /* Locals 		*/
 
 static uint8_t actChan = 16;		// active channels
@@ -298,6 +343,9 @@ runTest(testParam_t * testNow){
 		sLoRaResutls_t * res;
 		char buf[14];
 		res =  LoRaMgmtGetResults();
+		// pgm_read_word = read char pointer address from PROGMEM pos PRTTBLCR of the string array
+		// strcpy_P = copy char[] from PRROGMEM at that address of PRROGMEM to buf
+		// *.print = print that char to serial
 		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLCR]))));
 		debugSerial.print(res->lastCR);
 		debugSerial.print(strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[PRTTBLSF]))));
