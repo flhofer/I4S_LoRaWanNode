@@ -28,7 +28,6 @@ void initPorts (void) __attribute__ ((naked)) __attribute__ ((section (".init3")
 
  const char prtSttReboot[] PROGMEM = "Reboot counter read from device: ";
  const char prtSttStart[] PROGMEM = "Start test\n";
- const char prtSttContinue[] PROGMEM = "Continue ";
  const char prtSttPoll[] PROGMEM = "Poll for answer\n";
  const char prtSttStop[] PROGMEM = "Stop test\n";
  const char prtSttRetry[] PROGMEM = "Retry\n";
@@ -47,28 +46,27 @@ void initPorts (void) __attribute__ ((naked)) __attribute__ ((section (".init3")
  const char prtSttWrnConf[] PROGMEM = "WARN: Invalid test configuration\n";
  const char prtSttWrnFull[] PROGMEM = "*** RESULTS STORAGE FULL ***\n";
 
- PGM_P const prtSttStr[] PROGMEM = {prtSttReboot, prtSttStart, prtSttContinue, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttLoop, prtSttSkipT, prtSttSKipG, prtSttEndG, prtSttErrExec, prtSttErrText, prtSttWrnConf, prtSttWrnFull};
+ PGM_P const prtSttStr[] PROGMEM = {prtSttReboot, prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttLoop, prtSttSkipT, prtSttSKipG, prtSttEndG, prtSttErrExec, prtSttErrText, prtSttWrnConf, prtSttWrnFull};
 
  #define PRTSTTREBOOT 0
  #define PRTSTTSTART 1
- #define PRTSTTCONTINUE 2
- #define PRTSTTPOLL 3
- #define PRTSTTSTOP 4
- #define PRTSTTRETRY 5
- #define PRTSTTEVALUATE 6
- #define PRTSTTADDMEAS 7
- #define PRTSTTRESET 8
- #define PRTSTTRESTART 9
- #define PRTSTTEND 10
- #define PRTSTTPOLLERR 11
- #define PRTSTTLOOP 12
- #define PRTSTTSKIPT 13
- #define PRTSTTSKIPG 14
- #define PRTSTTENDG 15
- #define PRTSTTERREXEC 16
- #define PRTSTTERRTEXT 17
- #define PRTSTTWRNCONF 18
- #define PRTSTTWRNFULL 19
+ #define PRTSTTPOLL 2
+ #define PRTSTTSTOP 3
+ #define PRTSTTRETRY 4
+ #define PRTSTTEVALUATE 5
+ #define PRTSTTADDMEAS 6
+ #define PRTSTTRESET 7
+ #define PRTSTTRESTART 8
+ #define PRTSTTEND 9
+ #define PRTSTTPOLLERR 10
+ #define PRTSTTLOOP 11
+ #define PRTSTTSKIPT 12
+ #define PRTSTTSKIPG 13
+ #define PRTSTTENDG 14
+ #define PRTSTTERREXEC 15
+ #define PRTSTTERRTEXT 16
+ #define PRTSTTWRNCONF 17
+ #define PRTSTTWRNFULL 18
 
 const char prtTblCR[] PROGMEM = " CR 4/";
 const char prtTblSF[] PROGMEM = " SF ";
@@ -226,22 +224,17 @@ printPrgMem(int tbl, int pos){
 static void
 printTestResults(){
 	// use all local, do not change global
-	sLoRaResutls_t * trn;
-	testParam_t ** tno = NULL,
-				*** tgrp = NULL;
-
-	tgrp = &testConfig[0]; 	// assign pointer to pointer to TestgroupA
-	tno = *tgrp; 			// assign pointer to pointer to test 1
-	trn = &testResults[0]; // Init results pointer
+	sLoRaResutls_t * trn = &testResults[0]; // Init results pointer
 
 	// for printing
 	char grp = 'A';
 	int no = 1;
 	char buf[128];
 
-	for (;((*tgrp)); tgrp++, grp++){
-		for (; ((*tno)); tno++, no++){
-			for (int i = 1; i< (*tno)->counter ; i++, trn++){
+	debugSerial.println("Results");
+	for (testParam_t *** tgrp = &testConfig[0];((*tgrp)); tgrp++, grp++, no = 1 ){
+		for (testParam_t ** tno = *tgrp; ((*tno)); tno++, no++){
+			for (int i = 1; i<= (*tno)->counter ; i++, trn++){
 				sprintf(buf, "%c;%02d;%02d;%07lu;%07lu;%lu;%02u;%02d;%03d;%03d",
 						grp, no, i, trn->timeTx, trn->timeRx,
 						trn->txFrq, trn->txSF, trn->txPwr,
@@ -250,8 +243,6 @@ printTestResults(){
 				debugSerial.println(buf);
 			}
 		}
-		tno = *tgrp;
-		no = 1;
 	}
 	exit(1); // now end program
 }
@@ -271,9 +262,10 @@ enum testRun { 	rError = -1,
 
 static enum testRun tstate = rInit;
 static bool confirmed = true;	// TODO: implement menu and switch
-static int dataLen = 1; 	// TODO: implement menu and switch
-static int retries; 		// un-conf send retries
-static int pollcnt;			// un-conf poll retries
+static int	dataLen = 1; 		// TODO: implement menu and switch
+static int	retries; 			// un-conf send retries
+static int	pollcnt;			// un-conf poll retries
+static int	testcnt;			// un-conf test retries
 
 /*
  * writeSyncState: set sync for companion devices
@@ -303,8 +295,10 @@ runTest(testParam_t * testNow){
 	}
 
 	// reset status on next test
-	if (rEnd == tstate || rError == tstate )
+	if (rEnd == tstate || rError == tstate ){
+		testcnt=0;
 		tstate = rInit; // we don't call with error/end
+	}
 
 	int ret = 0;
 	switch(tstate){
@@ -338,7 +332,6 @@ runTest(testParam_t * testNow){
 				break;
 			}
 
-		printPrgMem(PRTSTTTBL, PRTSTTCONTINUE);
 		// sent but no response from confirmed, or not confirmed msg, goto poll
 		if (ret == 1 || !confirmed){
 			tstate = rRun;
@@ -426,7 +419,7 @@ runTest(testParam_t * testNow){
 		printPrgMem(PRTTBLTBL,PRTTBLTTX);
 		printScaled(res->timeTx);
 		printPrgMem(PRTTBLTBL,PRTTBLTMS);
-		printPrgMem(PRTTBLTBL,PRTTBLTTX);
+		printPrgMem(PRTTBLTBL,PRTTBLTRX);
 		printScaled(res->timeRx);
 		printPrgMem(PRTTBLTBL,PRTTBLTMS);
 		printPrgMem(PRTTBLTBL,PRTTBLTTL);
@@ -447,7 +440,7 @@ runTest(testParam_t * testNow){
 			printPrgMem(PRTSTTTBL, PRTSTTWRNFULL);
 
 		// Test repeats?
-		if (--testNow->counter <= 0){
+		if (testcnt >= testNow->counter){
 			tstate = rEnd;
 			printPrgMem(PRTSTTTBL, PRTSTTEND);
 			break;
