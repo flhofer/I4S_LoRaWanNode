@@ -244,6 +244,7 @@ printTestResults(){
 			}
 		}
 	}
+	debugSerial.flush();
 	exit(1); // now end program
 }
 
