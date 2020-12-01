@@ -14,7 +14,7 @@
 
 #define UNCF_POLL	5			// How many times to poll
 #define TST_RETRY	5			// How many times retry to send message
-#define TST_MXRSLT	20			// What's the max number of test results we allow?
+#define TST_MXRSLT	40			// What's the max number of test results we allow?
 #define RESFREEDEL	30000		// ~resource freeing delay ETSI requirement air-time reduction
 
 // Allocate initPorts in init section3 of code
@@ -102,8 +102,9 @@ PGM_P const prtTblStr[] PROGMEM = {prtTblCR, prtTblSF, prtTblBW, prtTblFrq, prtT
 /* Locals 		*/
 
 static sLoRaResutls_t testResults[TST_MXRSLT];	// Storage for test results
-static sLoRaResutls_t * testResultNow;			// Pointer to actual entry
+static sLoRaResutls_t * trn;			// Pointer to actual entry
 static uint8_t actChan = 16;					// active channels
+static int prgend;								// is test-program terminated?
 
 /* 	Globals		*/
 
@@ -122,41 +123,6 @@ typedef struct _testParam{
 	int (*evaluate)(void);	// Computation of result
 	int (*reset)(void);		// Reset steps for a new run
 } testParam_t;
-
-/*************** MIXED STUFF ********************/
-
-static void
-printScaled(uint32_t value, uint32_t Scale = 1000){
-	debugSerial.print(value / Scale);
-	debugSerial.print(".");
-	value %= Scale;
-	Scale /=10;
-	while (value < Scale){
-		debugSerial.print("0");
-		Scale /=10;
-	}
-	if (value != 0)
-		debugSerial.print(value);
-}
-
-static void
-printPrgMem(int tbl, int pos){
-
-	char buf[46];
-	switch (tbl){
-
-		default:
-		case PRTSTTTBL:
-			strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[pos])));
-			break;
-
-		case PRTTBLTBL:
-			strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[pos])));
-			break;
-	}
-	debugSerial.print(buf);
-
-}
 
 /*************** TEST FUNCTION CALL ********************/
 
@@ -220,6 +186,75 @@ static testParam_t **testConfig[] = { // array of testParam_t**
 		testGrpC,
 		NULL // Terminator for automatic sizing
 };
+
+
+/*************** MIXED STUFF ********************/
+
+static void
+printScaled(uint32_t value, uint32_t Scale = 1000){
+	debugSerial.print(value / Scale);
+	debugSerial.print(".");
+	value %= Scale;
+	Scale /=10;
+	while (value < Scale){
+		debugSerial.print("0");
+		Scale /=10;
+	}
+	if (value != 0)
+		debugSerial.print(value);
+}
+
+static void
+printPrgMem(int tbl, int pos){
+
+	char buf[46];
+	switch (tbl){
+
+		default:
+		case PRTSTTTBL:
+			strcpy_P(buf,(PGM_P)pgm_read_word(&(prtSttStr[pos])));
+			break;
+
+		case PRTTBLTBL:
+			strcpy_P(buf,(PGM_P)pgm_read_word(&(prtTblStr[pos])));
+			break;
+	}
+	debugSerial.print(buf);
+
+}
+
+static void
+printTestResults(){
+	// use all local, do not change global
+	sLoRaResutls_t * trn;
+	testParam_t ** tno = NULL,
+				*** tgrp = NULL;
+
+	tgrp = &testConfig[0]; 	// assign pointer to pointer to TestgroupA
+	tno = *tgrp; 			// assign pointer to pointer to test 1
+	trn = &testResults[0]; // Init results pointer
+
+	// for printing
+	char grp = 'A';
+	int no = 1;
+	char buf[128];
+
+	for (;((*tgrp)); tgrp++, grp++){
+		for (; ((*tno)); tno++, no++){
+			for (int i = 1; i< (*tno)->counter ; i++, trn++){
+				sprintf(buf, "%c;%02d;%02d;%07lu;%07lu;%lu;%02u;%02d;%03d;%03d",
+						grp, no, i, trn->timeTx, trn->timeRx,
+						trn->txFrq, trn->txSF, trn->txPwr,
+						trn->rxRssi, trn->rxSnr);
+
+				debugSerial.println(buf);
+			}
+		}
+		tno = *tgrp;
+		no = 1;
+	}
+	exit(1); // now end program
+}
 
 /*************** TEST MANAGEMENT FUNCTIONS*****************/
 
@@ -400,13 +435,13 @@ runTest(testParam_t * testNow){
 		debugSerial.println();
 
 		if (!testNow->results)
-			testNow->results = testResultNow; // apply to first
+			testNow->results = trn; // apply to first
 
-		if (testResultNow < &testResults[TST_MXRSLT]){
+		if (trn < &testResults[TST_MXRSLT]){
 			// Copy results to local counters, starts at the end
-			(void)memcpy(testResultNow, res, sizeof(sLoRaResutls_t));
+			(void)memcpy(trn, res, sizeof(sLoRaResutls_t));
 			testNow->resultsSize++;
-			testResultNow++;
+			trn++;
 		}
 		else
 			printPrgMem(PRTSTTTBL, PRTSTTWRNFULL);
@@ -464,9 +499,10 @@ selectTest(){
 
 	// end of tests groups?
 	if (!*tgrp){
-		printPrgMem(PRTSTTTBL, PRTSTTENDG);
+		if (!prgend)
+			printPrgMem(PRTSTTTBL, PRTSTTENDG);
 
-		exit(1); // END PROGRAM HERE
+		return;
 	}
 
 	enum testRun res = runTest(*tno);
@@ -549,7 +585,7 @@ void setup()
 
 	tgrp = &testConfig[0]; 	// assign pointer to pointer to TestgroupA
 	tno = *tgrp; 			// assign pointer to pointer to test 1
-	testResultNow = &testResults[0]; // Init results pointer
+	trn = &testResults[0]; // Init results pointer
 
 	startTs = millis();		// snapshot starting time
 }
@@ -559,5 +595,6 @@ void loop()
   // call test selector
   selectTest();
 
-  debugSerial.read();
+  if (debugSerial.read() && prgend)
+	  printTestResults();
 }
