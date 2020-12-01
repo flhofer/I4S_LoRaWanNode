@@ -33,7 +33,7 @@ static unsigned long wdt;			// watch-dog timeout timer value, 15000 default
 static unsigned long pollTstamp;	// last poll time-stamp
 
 static sLoRaResutls_t lastResults;	// Last results of test
-static byte genbuf[255];			// buffer for generated message
+static byte genbuf[MAXLORALEN];			// buffer for generated message
 
 /********************** HELPERS ************************/
 
@@ -170,9 +170,6 @@ evaluateResponse(int ret){
  */
 int LoRaMgmtSend(){
 
-	// Prepare PayLoad of x bytes
-	(void)generatePayload(genbuf);
-
 	byte payload[dataLen];
 	(void)memcpy(payload, genbuf, dataLen);
 
@@ -273,6 +270,8 @@ void LoRaSetGblParam(bool confirm, int datalen){
 	// initialize random seed with datalen as value
 	// keep consistency among tests, but differs with diff len
 	srandom(dataLen);
+	// Prepare PayLoad of x bytes
+	(void)generatePayload(genbuf);
 }
 
 /*
@@ -292,3 +291,16 @@ int LoRaSetChannels(uint16_t chnMsk){
   return !retVal * -1;
 }
 
+/*
+ * LoRaMgmtUpdt: update LoRa message buffer
+ *
+ * Arguments: -
+ *
+ * Return:	  - return 0 if OK, -1 if error
+ */
+int LoRaMgmtUpdt(){
+	// Prepare PayLoad of x bytes
+	(void)generatePayload(genbuf);
+
+	return 0;
+}

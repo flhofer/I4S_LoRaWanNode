@@ -102,7 +102,7 @@ PGM_P const prtTblStr[] PROGMEM = {prtTblCR, prtTblSF, prtTblBW, prtTblFrq, prtT
 /* Locals 		*/
 
 static sLoRaResutls_t testResults[TST_MXRSLT];	// Storage for test results
-static sLoRaResutls_t * trn;			// Pointer to actual entry
+static sLoRaResutls_t * trn;					// Pointer to actual entry
 static uint8_t actChan = 16;					// active channels
 static int prgend;								// is test-program terminated?
 
@@ -387,6 +387,7 @@ runTest(testParam_t * testNow){
 			tstate = rStart;
 			printPrgMem(PRTSTTTBL, PRTSTTRETRY);
 			delay(RESFREEDEL/actChan); // delay for modem resource free
+			(void)LoRaMgmtUpdt();
 			break;
 		}
 
@@ -412,8 +413,7 @@ runTest(testParam_t * testNow){
 		printPrgMem(PRTTBLTBL,PRTTBLSF);
 		debugSerial.print(res->txSF);
 		printPrgMem(PRTTBLTBL,PRTTBLBW);
-		debugSerial.print(res->txBW);
-		debugSerial.println("kHz ");
+		debugSerial.println(res->txBW);
 		printPrgMem(PRTTBLTBL,PRTTBLFRQ);
 		debugSerial.print(res->txFrq);
 		printPrgMem(PRTTBLTBL,PRTTBLPWR);
@@ -595,6 +595,6 @@ void loop()
   // call test selector
   selectTest();
 
-  if (debugSerial.read() && prgend)
+  if (((debugSerial.read())) && prgend)
 	  printTestResults();
 }

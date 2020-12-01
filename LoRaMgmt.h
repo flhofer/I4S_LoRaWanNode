@@ -34,6 +34,7 @@ int LoRaSetChannels(uint16_t chnMsk);
 
 int LoRaMgmtSend();
 int LoRaMgmtPoll();
+int LoRaMgmtUpdt();
 
 sLoRaResutls_t * LoRaMgmtGetResults();
 
