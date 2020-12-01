@@ -270,7 +270,7 @@ enum testRun { 	rError = -1,
 			};
 
 static enum testRun tstate = rInit;
-static bool confirmed = false;	// TODO: implement menu and switch
+static bool confirmed = true;	// TODO: implement menu and switch
 static int dataLen = 1; 	// TODO: implement menu and switch
 static int retries; 		// un-conf send retries
 static int pollcnt;			// un-conf poll retries
@@ -501,7 +501,7 @@ selectTest(){
 	if (!*tgrp){
 		if (!prgend)
 			printPrgMem(PRTSTTTBL, PRTSTTENDG);
-
+		prgend = 1;
 		return;
 	}
 

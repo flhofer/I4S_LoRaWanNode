@@ -33,6 +33,7 @@ static unsigned long wdt;			// watch-dog timeout timer value, 15000 default
 static unsigned long pollTstamp;	// last poll time-stamp
 
 static sLoRaResutls_t lastResults;	// Last results of test
+static byte genbuf[255];			// buffer for generated message
 
 /********************** HELPERS ************************/
 
@@ -47,7 +48,7 @@ static byte *
 generatePayload(byte *payload){
 
 	// TODO: unprotected memory
-	for (int i=0; i<dataLen; i++, payload++)
+	for (int i=0; i < dataLen; i++, payload++)
 		*payload=(byte)(random_r(&rnd_contex) % 255);
 
 	return payload;
@@ -170,9 +171,10 @@ evaluateResponse(int ret){
 int LoRaMgmtSend(){
 
 	// Prepare PayLoad of x bytes
-	// TODO: remove dynamic stack
+	(void)generatePayload(genbuf);
+
 	byte payload[dataLen];
-	(void)generatePayload(payload);
+	(void)memcpy(payload, genbuf, dataLen);
 
 	// Send it off
 	ttn_response_t ret = ttn.sendBytes(payload, sizeof(payload), 1, conf);
