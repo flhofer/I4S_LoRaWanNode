@@ -14,7 +14,7 @@
 
 #define UNCF_POLL	5			// How many times to poll
 #define TST_RETRY	5			// How many times retry to send message
-#define TST_MXRSLT	40			// What's the max number of test results we allow?
+#define TST_MXRSLT	30			// What's the max number of test results we allow?
 #define RESFREEDEL	40000		// ~resource freeing delay ETSI requirement air-time reduction
 
 // Allocate initPorts in init section3 of code
@@ -440,7 +440,7 @@ runTest(testParam_t * testNow){
 			printPrgMem(PRTSTTTBL, PRTSTTWRNFULL);
 
 		// Test repeats?
-		if (testcnt >= testNow->counter){
+		if (++testcnt >= testNow->counter){
 			tstate = rEnd;
 			printPrgMem(PRTSTTTBL, PRTSTTEND);
 			break;
@@ -588,6 +588,7 @@ void loop()
   // call test selector
   selectTest();
 
+  // received something and prgend?
   if (((debugSerial.read())) && prgend)
 	  printTestResults();
 }
