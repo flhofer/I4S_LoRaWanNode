@@ -377,7 +377,8 @@ runTest(testParam_t * testNow){
 		retries++;
 		pollcnt=0;
 
-		if (TST_RETRY > retries){
+		// unsuccessful and retries left?
+		if ((1 != ret)  && (TST_RETRY > retries)){
 			tstate = rStart;
 			printPrgMem(PRTSTTTBL, PRTSTTRETRY);
 			delay(RESFREEDEL/actChan); // delay for modem resource free
@@ -458,7 +459,7 @@ runTest(testParam_t * testNow){
 			if ((ret = testNow->reset()))
 				break;
 
-		//delay(RESFREEDEL/actChan); // delay for modem resource free
+		delay(RESFREEDEL/actChan); // delay for modem resource free
 		tstate = rInit;
 		printPrgMem(PRTSTTTBL, PRTSTTRESTART);
 		break;
