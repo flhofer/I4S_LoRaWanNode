@@ -37,7 +37,7 @@ int LoRaMgmtPoll();
 int LoRaMgmtUpdt();
 int LoRaMgmtRcnf();
 
-sLoRaResutls_t * LoRaMgmtGetResults();
+int LoRaMgmtGetResults(sLoRaResutls_t * res);
 
 
 

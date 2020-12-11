@@ -32,7 +32,10 @@ static unsigned long rxWindow2 = 2000; // pause duration in ms between tx and rx
 static unsigned long wdt;			// watch-dog timeout timer value, 15000 default
 static unsigned long pollTstamp;	// last poll time-stamp
 
-static sLoRaResutls_t lastResults;	// Last results of test
+static uint32_t timeTx;				// Last TX
+static uint32_t timeRx;				// Last RX
+static uint32_t timeToRx;			// Last Total time
+
 static byte genbuf[MAXLORALEN];			// buffer for generated message
 
 /********************** HELPERS ************************/
@@ -107,9 +110,9 @@ static void onMessage(const uint8_t *payload, size_t size, port_t port){
  */
 static void onBeforeTx(){
 	startTimer();
-	lastResults.timeTx = 0;
-	lastResults.timeRx = 0;
-	lastResults.timeToRx = 0;
+	timeTx = 0;
+	timeRx = 0;
+	timeToRx = 0;
 }
 
 /*
@@ -119,7 +122,7 @@ static void onBeforeTx(){
  * Return:	  -
  */
 static void onAfterTx(){
-	lastResults.timeTx = getTimer();
+	timeTx = getTimer();
 }
 
 /*
@@ -129,10 +132,10 @@ static void onAfterTx(){
  * Return:	  -
  */
 static void onAfterRx(){
-	lastResults.timeToRx = getTimer();
-	lastResults.timeRx = lastResults.timeToRx - lastResults.timeTx - rxWindow1;
-	if (lastResults.timeRx > 1000)
-		lastResults.timeRx -= rxWindow2;
+	timeToRx = getTimer();
+	timeRx = timeToRx - timeTx - rxWindow1;
+	if (timeRx > 1000)
+		timeRx -= rxWindow2;
 }
 
 /*************** TEST SEND FUNCTIONS ********************/
@@ -204,19 +207,24 @@ int LoRaMgmtPoll(){
 
 /*
  * LoRaMgmtGetTime: getter for last measured time
- * Arguments: -
  *
- * Return:	  ulong with time in ms
+ * Arguments: - pointer to Structure for the result data
+ *
+ * Return:	  - 0 if ok, <0 error
  */
-sLoRaResutls_t * LoRaMgmtGetResults(){
-	lastResults.lastCR = ttn.getCR();
-	lastResults.txBW = ttn.getBW();
-	lastResults.txDR = ttn.getDR();
-	lastResults.txFrq = ttn.getFrequency();
-	lastResults.txPwr = ttn.getPower();
-	lastResults.rxRssi = ttn.getRSSI();
-	lastResults.rxSnr = ttn.getSNR();
-	return &lastResults;
+int
+LoRaMgmtGetResults(sLoRaResutls_t * res){
+	res->timeTx = timeTx;
+	res->timeRx = timeRx;
+	res->timeToRx = timeToRx;
+	res->lastCR = ttn.getCR();
+	res->txBW = ttn.getBW();
+	res->txDR = ttn.getDR();
+	res->txFrq = ttn.getFrequency();
+	res->txPwr = ttn.getPower();
+	res->rxRssi = ttn.getRSSI();
+	res->rxSnr = ttn.getSNR();
+	return 0;
 }
 
 /*
@@ -272,8 +280,6 @@ void LoRaSetGblParam(bool confirm, int datalen){
 	srandom(dataLen);
 	// Prepare PayLoad of x bytes
 	(void)generatePayload(genbuf);
-
-	memset(&lastResults, 0, sizeof(lastResults));
 }
 
 /*
