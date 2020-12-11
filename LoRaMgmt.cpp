@@ -187,12 +187,12 @@ int LoRaMgmtSend(){
  * Return:	  status of polling, 0 ok, -1 error, 1 busy
  */
 int LoRaMgmtPoll(){
-	// set modem to true to read only modem.
 
 	// compute time, wait for window length at least seconds, aware of unsigned
 	unsigned long wait = (rxWindow1 + rxWindow2) - min(rxWindow1 + rxWindow2, (millis() - pollTstamp));
 	delay(wait);
 
+	// set modem to true to read only modem.
 	ttn_response_t ret = ttn.poll(1, conf, conf);
 
 	pollTstamp = millis();

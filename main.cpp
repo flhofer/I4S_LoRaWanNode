@@ -289,7 +289,7 @@ writeSyncState(int syncCode){
 static enum testRun
 runTest(testParam_t * testNow){
 
-	int failed;
+	int failed = 0;
 
 	if (!testNow){
 		printPrgMem(PRTSTTTBL, PRTSTTWRNCONF);
