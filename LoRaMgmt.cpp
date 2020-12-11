@@ -211,7 +211,7 @@ int LoRaMgmtPoll(){
 sLoRaResutls_t * LoRaMgmtGetResults(){
 	lastResults.lastCR = ttn.getCR();
 	lastResults.txBW = ttn.getBW();
-	lastResults.txSF = ttn.getSF();
+	lastResults.txDR = ttn.getDR();
 	lastResults.txFrq = ttn.getFrequency();
 	lastResults.txPwr = ttn.getPower();
 	lastResults.rxRssi = ttn.getRSSI();

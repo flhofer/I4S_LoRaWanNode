@@ -69,7 +69,7 @@ void initPorts (void) __attribute__ ((naked)) __attribute__ ((section (".init3")
  #define PRTSTTWRNFULL 18
 
 const char prtTblCR[] PROGMEM = " CR 4/";
-const char prtTblSF[] PROGMEM = " SF ";
+const char prtTblDR[] PROGMEM = " DR ";
 const char prtTblBW[] PROGMEM = " BW [khz] ";
 const char prtTblFrq[] PROGMEM = " Freq [hz] ";
 const char prtTblPwr[] PROGMEM = " pwr [dBm] ";
@@ -80,10 +80,10 @@ const char prtTblTRx[] PROGMEM = " Time RX: ";
 const char prtTblTTl[] PROGMEM = " Time Total: ";
 const char prtTblTms[] PROGMEM = " ms";
 
-PGM_P const prtTblStr[] PROGMEM = {prtTblCR, prtTblSF, prtTblBW, prtTblFrq, prtTblPwr, prtTblRssi, prtTblSnr, prtTblTTx, prtTblTRx, prtTblTTl, prtTblTms};
+PGM_P const prtTblStr[] PROGMEM = {prtTblCR, prtTblDR, prtTblBW, prtTblFrq, prtTblPwr, prtTblRssi, prtTblSnr, prtTblTTx, prtTblTRx, prtTblTTl, prtTblTms};
 
 #define PRTTBLCR 0
-#define PRTTBLSF 1
+#define PRTTBLDR 1
 #define PRTTBLBW 2
 #define PRTTBLFRQ 3
 #define PRTTBLPWR 4
@@ -236,7 +236,7 @@ printTestResults(){
 			for (int i = 1; i<= (*tno)->counter ; i++, trn++){
 				sprintf(buf, "%c;%02d;%02d;%07lu;%07lu;%lu;%02u;%02d;%03d;%03d",
 						grp, no, i, trn->timeTx, trn->timeRx,
-						trn->txFrq, trn->txSF, trn->txPwr,
+						trn->txFrq, trn->txDR, trn->txPwr,
 						trn->rxRssi, trn->rxSnr);
 
 				debugSerial.println(buf);
@@ -351,7 +351,7 @@ runTest(testParam_t * testNow){
 	case rRun:
 
 		if (testNow->run)
-			if ((ret = testNow->run()) && (pollcnt < UNCF_POLL)){
+			if ((ret = testNow->run()) && (confirmed || (pollcnt < UNCF_POLL))){
 				if (-9 == ret) // no chn -> pause for free-delay / active channels
 					delay(RESFREEDEL/actChan);
 				else if (1 == ret)
@@ -406,8 +406,8 @@ runTest(testParam_t * testNow){
 		// *.print = print that char to serial
 		printPrgMem(PRTTBLTBL,PRTTBLCR);
 		debugSerial.print(res->lastCR);
-		printPrgMem(PRTTBLTBL,PRTTBLSF);
-		debugSerial.print(res->txSF);
+		printPrgMem(PRTTBLTBL,PRTTBLDR);
+		debugSerial.print(res->txDR);
 		printPrgMem(PRTTBLTBL,PRTTBLBW);
 		debugSerial.println(res->txBW);
 		printPrgMem(PRTTBLTBL,PRTTBLFRQ);

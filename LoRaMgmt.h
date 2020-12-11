@@ -20,8 +20,8 @@ typedef struct sLoRaResutls {
 	uint32_t txFrq;			// current used frequency
 	uint8_t lastCR;			// Coding rate 4/x
 	uint8_t txBW;			// current bandwidth in kHz
-	uint8_t txSF;			// Tx spread factor, SF7 to 12
-	int8_t txPwr;			// Tx power used in dBm
+	uint8_t txDR;			// Tx data rate
+	int8_t txPwr;			// Tx power index used
 	int8_t rxRssi;			// last rx RSSI, default -128
 	uint8_t rxSnr;			// last rx SNR, default -128
 } sLoRaResutls_t;
