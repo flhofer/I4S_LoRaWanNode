@@ -133,11 +133,10 @@ TT_InitMono(){
 }
 
 static int
-Aeval(){
+TT_Eval(){
 
 	return 0;
 }
-
 
 /*************** TEST CONFIGURATIONS ********************/
 
@@ -148,7 +147,7 @@ static testParam_t testA1 = {
 	&LoRaMgmtSend,
 	&LoRaMgmtPoll,
 	NULL,
-	&Aeval,
+	&TT_Eval,
 	NULL,
 };
 
@@ -290,6 +289,8 @@ writeSyncState(int syncCode){
 static enum testRun
 runTest(testParam_t * testNow){
 
+	int failed;
+
 	if (!testNow){
 		printPrgMem(PRTSTTTBL, PRTSTTWRNCONF);
 		return rError;
@@ -297,7 +298,7 @@ runTest(testParam_t * testNow){
 
 	// reset status on next test
 	if (rEnd == tstate || rError == tstate ){
-		testcnt=0;
+		testcnt = 0;
 		tstate = rInit; // we don't call with error/end
 	}
 
@@ -325,7 +326,7 @@ runTest(testParam_t * testNow){
 	case rStart:
 
 		if (testNow->start)
-			if ((ret = testNow->start()) && ret != 1){ // next if modem is busy
+			if ((ret = testNow->start()) && ret != 1){
 				if (-9 == ret) // no chn -> pause for free-delay / active channels
 					delay(RESFREEDEL/actChan);
 				else
@@ -350,7 +351,7 @@ runTest(testParam_t * testNow){
 	case rRun:
 
 		if (testNow->run)
-			if ((ret = testNow->run()) && (pollcnt < UNCF_POLL || confirmed)){
+			if ((ret = testNow->run()) && (pollcnt < UNCF_POLL)){
 				if (-9 == ret) // no chn -> pause for free-delay / active channels
 					delay(RESFREEDEL/actChan);
 				else if (1 == ret)
@@ -361,7 +362,7 @@ runTest(testParam_t * testNow){
 			}
 
 		// Unconf polling ended and still no response, or confirmed and error message (end of retries)
-		if ((!confirmed && 1 == ret) || (confirmed && 0 != ret))
+		if ((failed = (0 != ret)))
 			printPrgMem(PRTSTTTBL, PRTSTTPOLLERR);
 
 		tstate = rStop;
@@ -378,7 +379,7 @@ runTest(testParam_t * testNow){
 		pollcnt=0;
 
 		// unsuccessful and retries left?
-		if ((1 != ret)  && (TST_RETRY > retries)){
+		if (failed && (TST_RETRY > retries)){
 			tstate = rStart;
 			printPrgMem(PRTSTTTBL, PRTSTTRETRY);
 			delay(RESFREEDEL/actChan); // delay for modem resource free
@@ -469,7 +470,7 @@ runTest(testParam_t * testNow){
 		;
 	}
 
-	if (ret == -1 ){
+	if (-1 == ret && (rStart != tstate) && (rRun != tstate) ){
 		printPrgMem(PRTSTTTBL, PRTSTTERREXEC);
 		tstate = rEnd;
 	}
@@ -477,8 +478,8 @@ runTest(testParam_t * testNow){
 	return tstate;
 }
 
-static testParam_t ** tno = NULL,
-					*** tgrp = NULL;
+static testParam_t ** tno = NULL;
+static testParam_t *** tgrp = NULL;
 
 static unsigned long startTs = 0; // loop timer
 
