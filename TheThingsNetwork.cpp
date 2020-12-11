@@ -397,14 +397,6 @@ uint8_t TheThingsNetwork::getCR()
   return 0;
 }
 
-uint8_t TheThingsNetwork::getSF()
-{
-  if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_SF, buffer, sizeof(buffer)) > 2) {
-    return atoi(buffer+2); // skip the first two chars "sf"
-  }
-  return 0;
-}
-
 uint32_t TheThingsNetwork::getFrequency()
 {
   if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_FREQ, buffer, sizeof(buffer)) > 0) {
@@ -443,6 +435,22 @@ int8_t TheThingsNetwork::getSNR()
     return atoi(buffer);
   }
   return -128;
+}
+
+int8_t TheThingsNetwork::getDR()
+{
+  if (readResponse(MAC_TABLE, MAC_GET_SET_TABLE, MAC_DR, buffer, sizeof(buffer))){
+    return atoi(buffer);
+  }
+  return -1;
+}
+
+int8_t TheThingsNetwork::getPowerIndex()
+{
+  if (readResponse(MAC_TABLE, MAC_GET_SET_TABLE, MAC_PWRIDX, buffer, sizeof(buffer)) > 0) {
+    return atoi(buffer);
+  }
+  return -1;
 }
 
 ttn_response_code_t TheThingsNetwork::getLastError(){

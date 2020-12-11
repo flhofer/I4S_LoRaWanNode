@@ -129,12 +129,13 @@ public:
   uint16_t getVDD();
   uint8_t getBW();
   uint8_t getCR();
-  uint8_t getSF();
   uint32_t getFrequency();
   uint32_t getWatchDogTimer();
   int8_t getPower();
   int8_t getRSSI();
   int8_t getSNR();
+  int8_t getDR();
+  int8_t getPowerIndex();
   ttn_response_code_t getLastError();
   void onMessage(void (*cb)(const uint8_t *payload, size_t size, port_t port));
   void onBeforeTx(void (*cb)(void));
