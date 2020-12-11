@@ -272,6 +272,8 @@ void LoRaSetGblParam(bool confirm, int datalen){
 	srandom(dataLen);
 	// Prepare PayLoad of x bytes
 	(void)generatePayload(genbuf);
+
+	memset(&lastResults, 0, sizeof(lastResults));
 }
 
 /*
@@ -304,3 +306,18 @@ int LoRaMgmtUpdt(){
 
 	return 0;
 }
+
+/*
+ * LoRaMgmtRcnf: reset modem and reconf
+ *
+ * Arguments: -
+ *
+ * Return:	  - return 0 if OK, -1 if error
+ */
+int LoRaMgmtRcnf(){
+	if (conf)
+		ttn.reset(1); // reset with adr on
+
+	return 0;
+}
+
