@@ -12,7 +12,6 @@
 
 #define LORACHNMAX 8
 
-//TODO: change to STDINT formats
 typedef struct sLoRaResutls {
 	uint32_t timeTx;
 	uint32_t timeRx;

@@ -173,6 +173,7 @@ evaluateResponse(int ret){
  */
 int LoRaMgmtSend(){
 
+	// TODO: get rid of local buffer genbuf
 	byte payload[dataLen];
 	(void)memcpy(payload, genbuf, dataLen);
 
