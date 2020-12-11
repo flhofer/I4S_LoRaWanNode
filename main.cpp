@@ -14,7 +14,7 @@
 
 #define UNCF_POLL	5			// How many times to poll
 #define TST_RETRY	5			// How many times retry to send message
-#define TST_MXRSLT	30			// What's the max number of test results we allow?
+#define TST_MXRSLT	40			// What's the max number of test results we allow?
 #define RESFREEDEL	40000		// ~resource freeing delay ETSI requirement air-time reduction
 
 // Allocate initPorts in init section3 of code
@@ -399,34 +399,33 @@ runTest(testParam_t * testNow){
 
 		printPrgMem(PRTSTTTBL, PRTSTTADDMEAS);
 
-		sLoRaResutls_t * res;
-		res =  LoRaMgmtGetResults();
+		(void)LoRaMgmtGetResults(trn); // TODO: implement and use return value
 		// pgm_read_word = read char pointer address from PROGMEM pos PRTTBLCR of the string array
 		// strcpy_P = copy char[] from PRROGMEM at that address of PRROGMEM to buf
 		// *.print = print that char to serial
 		printPrgMem(PRTTBLTBL,PRTTBLCR);
-		debugSerial.print(res->lastCR);
+		debugSerial.print(trn->lastCR);
 		printPrgMem(PRTTBLTBL,PRTTBLDR);
-		debugSerial.print(res->txDR);
+		debugSerial.print(trn->txDR);
 		printPrgMem(PRTTBLTBL,PRTTBLBW);
-		debugSerial.println(res->txBW);
+		debugSerial.println(trn->txBW);
 		printPrgMem(PRTTBLTBL,PRTTBLFRQ);
-		debugSerial.print(res->txFrq);
+		debugSerial.print(trn->txFrq);
 		printPrgMem(PRTTBLTBL,PRTTBLPWR);
-		debugSerial.print(res->txPwr);
+		debugSerial.print(trn->txPwr);
 		printPrgMem(PRTTBLTBL,PRTTBLRSSI);
-		debugSerial.print(res->rxRssi);
+		debugSerial.print(trn->rxRssi);
 		printPrgMem(PRTTBLTBL,PRTTBLSNR);
-		debugSerial.println(res->rxSnr);
+		debugSerial.println(trn->rxSnr);
 
 		printPrgMem(PRTTBLTBL,PRTTBLTTX);
-		printScaled(res->timeTx);
+		printScaled(trn->timeTx);
 		printPrgMem(PRTTBLTBL,PRTTBLTMS);
 		printPrgMem(PRTTBLTBL,PRTTBLTRX);
-		printScaled(res->timeRx);
+		printScaled(trn->timeRx);
 		printPrgMem(PRTTBLTBL,PRTTBLTMS);
 		printPrgMem(PRTTBLTBL,PRTTBLTTL);
-		printScaled(res->timeToRx);
+		printScaled(trn->timeToRx);
 		printPrgMem(PRTTBLTBL,PRTTBLTMS);
 		debugSerial.println();
 
@@ -434,8 +433,6 @@ runTest(testParam_t * testNow){
 			testNow->results = trn; // apply to first
 
 		if (trn < &testResults[TST_MXRSLT]){
-			// Copy results to local counters, starts at the end
-			(void)memcpy(trn, res, sizeof(sLoRaResutls_t));
 			testNow->resultsSize++;
 			trn++;
 		}
