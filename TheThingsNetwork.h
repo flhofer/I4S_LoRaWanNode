@@ -73,6 +73,19 @@ enum ttn_response_code_t
 	TTN_ERR_ERR = (-12),
 };
 
+enum ttn_modem_status_t
+{
+	TTN_MDM_IDLE = 0,
+	TTN_MDM_TX,
+	TTN_MDM_BEFORE_RX,
+	TTN_MDM_RX1,
+	TTN_MDM_BEFORE_RX2,
+	TTN_MDM_RETX_DELAY,
+	TTN_MDM_APB_DELAY,
+	TTN_MDM_C_RX1,
+	TTN_MDM_C_RX2
+};
+
 class TheThingsNetwork
 {
 private:
@@ -131,6 +144,7 @@ public:
   uint8_t getCR();
   uint32_t getFrequency();
   uint32_t getWatchDogTimer();
+  enum ttn_modem_status_t getStatus();
   int8_t getPower();
   int8_t getRSSI();
   int8_t getSNR();
