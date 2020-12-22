@@ -101,6 +101,8 @@ PGM_P const prtTblStr[] PROGMEM = {prtTblCR, prtTblDR, prtTblBW, prtTblFrq, prtT
 
 static sLoRaResutls_t testResults[TST_MXRSLT];	// Storage for test results
 static sLoRaResutls_t * trn;					// Pointer to actual entry
+static char prntGrp;							// Actual executing group
+static int prntTno;								// actual executing testno
 static uint8_t actChan = 16;					// active channels
 static int prgend;								// is test-program terminated?
 
@@ -110,9 +112,8 @@ int debug = 1;
 
 // Test data structure
 typedef struct _testParam{
-	sLoRaResutls_t *results;// Data points
-	size_t resultsSize;		// size of data points
-	int counter;			// How many times to repeat
+	sLoRaResutls_t *results;// Data points (length max (pos NULL, TST_MXRSLT)
+	int dataLen;			// Data length of the test data
 	int syncCode;			// DO sync code with jamming devices
 	int (*init)(void);		// Hardware and RF preparation code
 	int (*start)(void);		// Start of test
@@ -150,7 +151,7 @@ TT_Eval(){
 
 // Test definition
 static testParam_t testA1 = {
-	NULL, 0, 15, 0,
+	NULL, 15, 0,
 	&TT_InitMono,
 	&LoRaMgmtSend,
 	&LoRaMgmtPoll,
@@ -160,7 +161,7 @@ static testParam_t testA1 = {
 };
 
 static testParam_t testA2 = {
-	NULL, 0, 15, 0,
+	NULL, 15, 0,
 	&TT_InitAll,
 	&LoRaMgmtSend,
 	&LoRaMgmtPoll,
@@ -234,25 +235,17 @@ printTestResults(){
 	sLoRaResutls_t * trn = &testResults[0]; // Init results pointer
 
 	// for printing
-	char grp = 'A';
-	int no = 1;
 	char buf[128];
 
 	debugSerial.println("Results");
-	for (testParam_t *** tgrp = &testConfig[0];((*tgrp)); tgrp++, grp++, no = 1 ){
-		for (testParam_t ** tno = *tgrp; ((*tno)); tno++, no++){
-			for (int i = 1; i<= (*tno)->counter ; i++, trn++){
-				sprintf(buf, "%c;%02d;%02d;%07lu;%07lu;%lu;%02u;%02d;%03d;%03d",
-						grp, no, i, trn->timeTx, trn->timeRx,
-						trn->txFrq, trn->txDR, trn->txPwr,
-						trn->rxRssi, trn->rxSnr);
-
+	for (int i = 1; i<= TST_MXRSLT; i++, trn++){
+		sprintf(buf, "%c;%02d;%02d;%07lu;%07lu;%lu;%02u;%02d;%03d;%03d",
+				prntGrp, prntTno, i, trn->timeTx, trn->timeRx,
+				trn->txFrq, trn->txDR, trn->txPwr,
+				trn->rxRssi, trn->rxSnr);
 				debugSerial.println(buf);
-			}
 		}
-	}
 	debugSerial.flush();
-	exit(1); // now end program
 }
 
 /*************** TEST MANAGEMENT FUNCTIONS*****************/
@@ -269,11 +262,9 @@ enum testRun { 	rError = -1,
 			};
 
 static enum testRun tstate = rInit;
-static bool confirmed = true;	// TODO: implement menu and switch
-static int	dataLen = 1; 		// TODO: implement menu and switch
+static bool confirmed = true;	// TODO: implement menu and switch, BUT should it be changed?
 static int	retries; 			// un-conf send retries
 static int	pollcnt;			// un-conf poll retries
-static int	testcnt;			// un-conf test retries
 
 /*
  * writeSyncState: set sync for companion devices
@@ -306,9 +297,9 @@ runTest(testParam_t * testNow){
 
 	// reset status on next test
 	if (rEnd == tstate || rError == tstate ){
-		testcnt = 0;
 		tstate = rInit; // we don't call with error/end
-	}
+		memset(testResults,0, sizeof(testResults));
+ 	}
 
 	int ret = 0;
 	switch(tstate){
@@ -322,7 +313,7 @@ runTest(testParam_t * testNow){
 		writeSyncState(testNow->syncCode);
 
 		// Set global test parameters
-		LoRaSetGblParam(confirmed, dataLen);
+		LoRaSetGblParam(confirmed, testNow->dataLen);
 		retries=0;
 		pollcnt=0;
 
@@ -440,18 +431,16 @@ runTest(testParam_t * testNow){
 		if (!testNow->results)
 			testNow->results = trn; // apply to first
 
-		if (trn < &testResults[TST_MXRSLT]){
-			testNow->resultsSize++;
-			trn++;
-		}
-		else
-			printPrgMem(PRTSTTTBL, PRTSTTWRNFULL);
-
 		// Test repeats?
-		if (++testcnt >= testNow->counter){
+		if (trn < &testResults[TST_MXRSLT]){
+			trn++;
 			tstate = rEnd;
 			printPrgMem(PRTSTTTBL, PRTSTTEND);
 			break;
+		}
+		else{
+			printPrgMem(PRTSTTTBL, PRTSTTWRNFULL);
+			printTestResults();
 		}
 
 		tstate = rReset;
@@ -515,6 +504,7 @@ selectTest(){
 	if ((res == rEnd || res == rError) && *tno){
 		printPrgMem(PRTSTTTBL, PRTSTTSKIPT);
 		tno++;
+		prntTno++;
 
 		printPrgMem(PRTSTTTBL, PRTSTTLOOP);
 
@@ -529,6 +519,8 @@ selectTest(){
 		if (*tgrp){
 			tgrp++; // next test group
 			tno = *tgrp;
+			prntGrp++;
+			prntTno = 1;
 			printPrgMem(PRTSTTTBL, PRTSTTENDG);
 			startTs = millis();
 		}
@@ -586,7 +578,10 @@ void setup()
 
 	tgrp = &testConfig[0]; 	// assign pointer to pointer to TestgroupA
 	tno = *tgrp; 			// assign pointer to pointer to test 1
-	trn = &testResults[0]; // Init results pointer
+	trn = &testResults[0];	// Init results pointer
+
+	prntGrp = 'A';			// Actual executing group
+	prntTno = 1;			// actual executing testno
 
 	startTs = millis();		// snapshot starting time
 }
@@ -597,6 +592,8 @@ void loop()
   selectTest();
 
   // received something and prgend?
-  if (((debugSerial.read())) && prgend)
+  if (((debugSerial.read())) && prgend){
 	  printTestResults();
+	  exit(1); // now end program
+  }
 }
