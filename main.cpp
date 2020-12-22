@@ -110,7 +110,6 @@ int debug = 1;
 
 // Test data structure
 typedef struct _testParam{
-	sLoRaResutls_t *results;// Data points (length max (pos NULL, TST_MXRSLT)
 	int dataLen;			// Data length of the test data
 	int syncCode;			// DO sync code with jamming devices
 	int (*init)(void);		// Hardware and RF preparation code
@@ -149,7 +148,7 @@ TT_Eval(){
 
 // Test definition
 static testParam_t testA1 = {
-	NULL, 15, 0,
+	15, 0,
 	&TT_InitMono,
 	&LoRaMgmtSend,
 	&LoRaMgmtPoll,
@@ -159,7 +158,7 @@ static testParam_t testA1 = {
 };
 
 static testParam_t testA2 = {
-	NULL, 15, 0,
+	15, 0,
 	&TT_InitAll,
 	&LoRaMgmtSend,
 	&LoRaMgmtPoll,
@@ -243,7 +242,6 @@ printTestResults(){
 				trn->rxRssi, trn->rxSnr);
 				debugSerial.println(buf);
 		}
-	debugSerial.flush();
 }
 
 /*************** TEST MANAGEMENT FUNCTIONS*****************/
@@ -426,9 +424,6 @@ runTest(testParam_t * testNow){
 		printScaled(trn->timeToRx);
 		printPrgMem(PRTTBLTBL,PRTTBLTMS);
 		debugSerial.println();
-
-		if (!testNow->results)
-			testNow->results = trn; // apply to first
 
 		// End of tests?
 		if (trn >= &testResults[TST_MXRSLT]){
