@@ -133,6 +133,14 @@ TT_InitMono(){
 }
 
 static int
+TT_InitAll(){
+
+	// Setup channels to All standard channels
+	actChan = 8;
+	return LoRaSetChannels(0xFF); // Enable channels 1-8 only;
+}
+
+static int
 TT_Eval(){
 
 	return 0;
@@ -142,7 +150,7 @@ TT_Eval(){
 
 // Test definition
 static testParam_t testA1 = {
-	NULL, 0, 2, 0,
+	NULL, 0, 15, 0,
 	&TT_InitMono,
 	&LoRaMgmtSend,
 	&LoRaMgmtPoll,
@@ -152,12 +160,12 @@ static testParam_t testA1 = {
 };
 
 static testParam_t testA2 = {
-	NULL, 0, 0, 0,
-	&TT_InitMono,
+	NULL, 0, 15, 0,
+	&TT_InitAll,
+	&LoRaMgmtSend,
+	&LoRaMgmtPoll,
 	NULL,
-	NULL,
-	NULL,
-	NULL,
+	&TT_Eval,
 	NULL,
 };
 
