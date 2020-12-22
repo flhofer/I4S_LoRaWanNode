@@ -26,47 +26,45 @@ void initPorts (void) __attribute__ ((naked)) __attribute__ ((section (".init3")
 
 /* PROGMEM string lists */
 
- const char prtSttReboot[] PROGMEM = "Reboot counter read from device: ";
- const char prtSttStart[] PROGMEM = "Start test\n";
- const char prtSttPoll[] PROGMEM = "Poll for answer\n";
- const char prtSttStop[] PROGMEM = "Stop test\n";
- const char prtSttRetry[] PROGMEM = "Retry\n";
- const char prtSttEvaluate[] PROGMEM = "Evaluate\n";
- const char prtSttAddMeas[] PROGMEM = " - add measurement\n";
- const char prtSttReset[] PROGMEM = "Reset\n";
- const char prtSttRestart[] PROGMEM = "Restart - Init\n";
- const char prtSttEnd[] PROGMEM = "End test\n";
- const char prtSttPollErr[] PROGMEM = "Poll - No response from server.\n";
- const char prtSttLoop[] PROGMEM = "-- LOOP 10 Seconds --\n";
- const char prtSttSkipT[] PROGMEM = "Skip to next test\n";
- const char prtSttSKipG[] PROGMEM = "Skip to next test group\n";
- const char prtSttEndG[] PROGMEM = "End of test groups\n";
- const char prtSttErrExec[] PROGMEM = "ERROR: during state execution\n";
- const char prtSttErrText[] PROGMEM = "ERROR: test malfunction\n";
- const char prtSttWrnConf[] PROGMEM = "WARN: Invalid test configuration\n";
- const char prtSttWrnFull[] PROGMEM = "*** RESULTS STORAGE FULL ***\n";
+const char prtSttReboot[] PROGMEM = "Reboot counter read from device: ";
+const char prtSttStart[] PROGMEM = "Start test\n";
+const char prtSttPoll[] PROGMEM = "Poll for answer\n";
+const char prtSttStop[] PROGMEM = "Stop test\n";
+const char prtSttRetry[] PROGMEM = "Retry\n";
+const char prtSttEvaluate[] PROGMEM = "Evaluate\n";
+const char prtSttAddMeas[] PROGMEM = " - add measurement\n";
+const char prtSttReset[] PROGMEM = "Reset\n";
+const char prtSttRestart[] PROGMEM = "Restart - Init\n";
+const char prtSttEnd[] PROGMEM = "End test\n";
+const char prtSttPollErr[] PROGMEM = "Poll - No response from server.\n";
+const char prtSttLoop[] PROGMEM = "-- LOOP 10 Seconds --\n";
+const char prtSttSkipT[] PROGMEM = "Skip to next test\n";
+const char prtSttSKipG[] PROGMEM = "Skip to next test group\n";
+const char prtSttEndG[] PROGMEM = "End of test groups\n";
+const char prtSttErrExec[] PROGMEM = "ERROR: during state execution\n";
+const char prtSttErrText[] PROGMEM = "ERROR: test malfunction\n";
+const char prtSttWrnConf[] PROGMEM = "WARN: Invalid test configuration\n";
 
- PGM_P const prtSttStr[] PROGMEM = {prtSttReboot, prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttLoop, prtSttSkipT, prtSttSKipG, prtSttEndG, prtSttErrExec, prtSttErrText, prtSttWrnConf, prtSttWrnFull};
+PGM_P const prtSttStr[] PROGMEM = {prtSttReboot, prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttLoop, prtSttSkipT, prtSttSKipG, prtSttEndG, prtSttErrExec, prtSttErrText, prtSttWrnConf};
 
- #define PRTSTTREBOOT 0
- #define PRTSTTSTART 1
- #define PRTSTTPOLL 2
- #define PRTSTTSTOP 3
- #define PRTSTTRETRY 4
- #define PRTSTTEVALUATE 5
- #define PRTSTTADDMEAS 6
- #define PRTSTTRESET 7
- #define PRTSTTRESTART 8
- #define PRTSTTEND 9
- #define PRTSTTPOLLERR 10
- #define PRTSTTLOOP 11
- #define PRTSTTSKIPT 12
- #define PRTSTTSKIPG 13
- #define PRTSTTENDG 14
- #define PRTSTTERREXEC 15
- #define PRTSTTERRTEXT 16
- #define PRTSTTWRNCONF 17
- #define PRTSTTWRNFULL 18
+#define PRTSTTREBOOT 0
+#define PRTSTTSTART 1
+#define PRTSTTPOLL 2
+#define PRTSTTSTOP 3
+#define PRTSTTRETRY 4
+#define PRTSTTEVALUATE 5
+#define PRTSTTADDMEAS 6
+#define PRTSTTRESET 7
+#define PRTSTTRESTART 8
+#define PRTSTTEND 9
+#define PRTSTTPOLLERR 10
+#define PRTSTTLOOP 11
+#define PRTSTTSKIPT 12
+#define PRTSTTSKIPG 13
+#define PRTSTTENDG 14
+#define PRTSTTERREXEC 15
+#define PRTSTTERRTEXT 16
+#define PRTSTTWRNCONF 17
 
 const char prtTblCR[] PROGMEM = " CR 4/";
 const char prtTblDR[] PROGMEM = " DR ";
@@ -299,6 +297,7 @@ runTest(testParam_t * testNow){
 	if (rEnd == tstate || rError == tstate ){
 		tstate = rInit; // we don't call with error/end
 		memset(testResults,0, sizeof(testResults));
+		trn = &testResults[0];	// Init results pointer
  	}
 
 	int ret = 0;
@@ -431,18 +430,15 @@ runTest(testParam_t * testNow){
 		if (!testNow->results)
 			testNow->results = trn; // apply to first
 
-		// Test repeats?
-		if (trn < &testResults[TST_MXRSLT]){
-			trn++;
+		// End of tests?
+		if (trn >= &testResults[TST_MXRSLT]){
 			tstate = rEnd;
 			printPrgMem(PRTSTTTBL, PRTSTTEND);
+			printTestResults();
 			break;
 		}
-		else{
-			printPrgMem(PRTSTTTBL, PRTSTTWRNFULL);
-			printTestResults();
-		}
 
+		trn++;
 		tstate = rReset;
 		printPrgMem(PRTSTTTBL, PRTSTTRESET);
 
@@ -593,7 +589,6 @@ void loop()
 
   // received something and prgend?
   if (((debugSerial.read())) && prgend){
-	  printTestResults();
 	  exit(1); // now end program
   }
 }
