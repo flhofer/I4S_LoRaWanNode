@@ -426,7 +426,7 @@ runTest(testParam_t * testNow){
 		debugSerial.println();
 
 		// End of tests?
-		if (trn >= &testResults[TST_MXRSLT]){
+		if (trn >= &testResults[TST_MXRSLT-1]){
 			tstate = rEnd;
 			printPrgMem(PRTSTTTBL, PRTSTTEND);
 			printTestResults();
@@ -500,7 +500,7 @@ selectTest(){
 		printPrgMem(PRTSTTTBL, PRTSTTLOOP);
 
 		// compute time to 10 seconds, aware of unsigned
-		unsigned long wait = 10000 - min(10000, (millis() - startTs));
+		unsigned long wait = 10000l - min(10000l, (millis() - startTs));
 		delay(wait);
 		startTs = millis();
 	}
@@ -582,8 +582,6 @@ void loop()
   // call test selector
   selectTest();
 
-  // received something and prgend?
-  if (((debugSerial.read())) && prgend){
-	  exit(1); // now end program
-  }
+  // received something
+  debugSerial.read();
 }
