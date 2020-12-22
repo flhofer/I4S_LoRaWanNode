@@ -20,6 +20,20 @@
 #define LORA_NWSKEY		"01234567890abcdef01234567890abcd"
 #define LORA_APSKEY		"01234567890abcdef01234567890abcd"
 
+// global types
+typedef struct sLoRaResutls {
+	uint32_t timeTx;
+	uint32_t timeRx;
+	uint32_t timeToRx;
+	uint32_t txFrq;			// current used frequency
+	uint8_t lastCR;			// Coding rate 4/x
+	uint8_t txBW;			// current bandwidth in kHz
+	uint8_t txDR;			// Tx data rate
+	int8_t txPwr;			// Tx power index used
+	int8_t rxRssi;			// last rx RSSI, default -128
+	uint8_t rxSnr;			// last rx SNR, default -128
+} sLoRaResutls_t;
+
 //global variable declarations
 extern int debug;				// Global flag Debug console attached (PC)
 
