@@ -465,10 +465,23 @@ int8_t TheThingsNetwork::getPowerIndex()
 
 bool TheThingsNetwork::getChannelStatus (uint8_t ch)
 {
-  sendCommand(MAC_TABLE, 0, true, false);
+  char str[5];
+  if (ch > 9)
+  {
+	str[0] = ((ch - (ch % 10)) / 10) + 48;
+	str[1] = (ch % 10) + 48;
+	str[2] = '\0';
+  }
+  else
+  {
+	str[0] = ch + 48;
+	str[1] = '\0';
+  }
+  sendCommand(MAC_TABLE, MAC_PREFIX, true, false);
   sendCommand(MAC_TABLE, MAC_GET, true, false); // default "get " in between (same as radio get)
-  sendCommand(MAC_GET_SET_TABLE, MAC_CH, false, false);
-  sendCommand(MAC_CH_TABLE, MAC_CHANNEL_STATUS, true);
+  sendCommand(MAC_GET_SET_TABLE, MAC_CH, true, false);
+  sendCommand(MAC_CH_TABLE, MAC_CHANNEL_STATUS, true, false);
+  modemStream->write(str);
   modemStream->write(SEND_MSG);
   return (pgmstrcmp(buffer, CMP_ON) != 0); // true if on, false if off or an error occurs
 }
