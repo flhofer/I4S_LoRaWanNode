@@ -463,6 +463,16 @@ int8_t TheThingsNetwork::getPowerIndex()
   return -1;
 }
 
+bool TheThingsNetwork::getChannelStatus (uint8_t ch)
+{
+  sendCommand(MAC_TABLE, 0, true, false);
+  sendCommand(MAC_TABLE, MAC_GET, true, false); // default "get " in between (same as radio get)
+  sendCommand(MAC_GET_SET_TABLE, MAC_CH, false, false);
+  sendCommand(MAC_CH_TABLE, MAC_CHANNEL_STATUS, true);
+  modemStream->write(SEND_MSG);
+  return (pgmstrcmp(buffer, CMP_ON) != 0); // true if on, false if off or an error occurs
+}
+
 ttn_response_code_t TheThingsNetwork::getLastError(){
 
 	int match, pos;
