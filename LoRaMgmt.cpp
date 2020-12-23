@@ -207,7 +207,25 @@ int LoRaMgmtPoll(){
 /*************** MANAGEMENT FUNCTIONS ********************/
 
 /*
- * LoRaMgmtGetTime: getter for last measured time
+ * LoRaGetChannels:
+ *
+ * Arguments: - pointer to channel enable bit mask to fill, 0 off, 1 on
+ *
+ * Return:	  - return 0 if OK, -1 if error
+ */
+static int
+LoRaGetChannels(uint16_t * chnMsk){
+
+  *chnMsk = 0;
+
+  for (int i=0; i<LORACHNMAX; i++)
+	  *chnMsk |= ttn.getChannelStatus((uint8_t)i) << i;
+
+  return (0 == *chnMsk) * -1; // error if mask is empty!
+}
+
+/*
+ * LoRaMgmtGetResults: getter for last experiment results
  *
  * Arguments: - pointer to Structure for the result data
  *
@@ -218,10 +236,10 @@ LoRaMgmtGetResults(sLoRaResutls_t * res){
 	res->timeTx = timeTx;
 	res->timeRx = timeRx;
 	res->timeToRx = timeToRx;
-	res->lastCR = ttn.getCR();
-	res->txBW = ttn.getBW();
-	res->txDR = ttn.getDR();
 	res->txFrq = ttn.getFrequency();
+	(void)LoRaGetChannels(&res->chnMsk);
+	res->lastCR = ttn.getCR();
+	res->txDR = ttn.getDR();
 	res->txPwr = ttn.getPower();
 	res->rxRssi = ttn.getRSSI();
 	res->rxSnr = ttn.getSNR();
