@@ -75,6 +75,7 @@ enum ttn_response_code_t
 
 enum ttn_modem_status_t
 {
+	TTN_MDM_READERR = -1,
 	TTN_MDM_IDLE = 0,
 	TTN_MDM_TX,
 	TTN_MDM_BEFORE_RX,

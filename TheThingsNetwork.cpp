@@ -420,7 +420,7 @@ enum ttn_modem_status_t TheThingsNetwork::getStatus()
   if (readResponse(MAC_TABLE, MAC_GET_SET_TABLE, MAC_STATUS, buffer, sizeof(buffer)) > 0) {
     return (enum ttn_modem_status_t)(atol(buffer) & 0x0F); // Mask out only active status
   }
-  return 0;
+  return TTN_MDM_READERR; // unable to read status
 }
 
 int8_t TheThingsNetwork::getPower()
