@@ -68,7 +68,7 @@ PGM_P const prtSttStr[] PROGMEM = {prtSttReboot, prtSttStart, prtSttPoll, prtStt
 
 const char prtTblCR[] PROGMEM = " CR 4/";
 const char prtTblDR[] PROGMEM = " DR ";
-const char prtTblBW[] PROGMEM = " BW [khz] ";
+const char prtTblChnMsk[] PROGMEM = " MSK [EN] ";
 const char prtTblFrq[] PROGMEM = " Freq [hz] ";
 const char prtTblPwr[] PROGMEM = " pwr [dBm] ";
 const char prtTblRssi[] PROGMEM = " rssi ";
@@ -78,11 +78,11 @@ const char prtTblTRx[] PROGMEM = " Time RX: ";
 const char prtTblTTl[] PROGMEM = " Time Total: ";
 const char prtTblTms[] PROGMEM = " ms";
 
-PGM_P const prtTblStr[] PROGMEM = {prtTblCR, prtTblDR, prtTblBW, prtTblFrq, prtTblPwr, prtTblRssi, prtTblSnr, prtTblTTx, prtTblTRx, prtTblTTl, prtTblTms};
+PGM_P const prtTblStr[] PROGMEM = {prtTblCR, prtTblDR, prtTblChnMsk, prtTblFrq, prtTblPwr, prtTblRssi, prtTblSnr, prtTblTTx, prtTblTRx, prtTblTTl, prtTblTms};
 
 #define PRTTBLCR 0
 #define PRTTBLDR 1
-#define PRTTBLBW 2
+#define PRTTBLCHMSK 2
 #define PRTTBLFRQ 3
 #define PRTTBLPWR 4
 #define PRTTBLRSSI 5
@@ -403,8 +403,8 @@ runTest(testParam_t * testNow){
 		debugSerial.print(trn->lastCR);
 		printPrgMem(PRTTBLTBL,PRTTBLDR);
 		debugSerial.print(trn->txDR);
-		printPrgMem(PRTTBLTBL,PRTTBLBW);
-		debugSerial.println(trn->txBW);
+		printPrgMem(PRTTBLTBL,PRTTBLCHMSK);
+		debugSerial.println(trn->chnMsk);
 		printPrgMem(PRTTBLTBL,PRTTBLFRQ);
 		debugSerial.print(trn->txFrq);
 		printPrgMem(PRTTBLTBL,PRTTBLPWR);
