@@ -236,9 +236,9 @@ printTestResults(){
 
 	debugSerial.println("Results");
 	for (int i = 1; i<= TST_MXRSLT; i++, trn++){
-		sprintf(buf, "%c;%02d;%02d;%07lu;%07lu;%lu;%02u;%02d;%03d;%03d",
+		sprintf(buf, "%c;%02d;%02d;%07lu;%07lu;0x%02X;%lu;%02u;%02d;%03d;%03d",
 				prntGrp, prntTno, i, trn->timeTx, trn->timeRx,
-				trn->txFrq, trn->txDR, trn->txPwr,
+				trn->chnMsk, trn->txFrq, trn->txDR, trn->txPwr,
 				trn->rxRssi, trn->rxSnr);
 				debugSerial.println(buf);
 		}
