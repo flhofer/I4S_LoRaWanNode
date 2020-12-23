@@ -516,8 +516,6 @@ selectTest(){
 			startTs = millis();
 		}
 	}
-
-
 }
 
 /*************** SYSTEM SETUP AND LOOP *****************/
