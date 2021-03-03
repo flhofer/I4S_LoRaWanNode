@@ -151,7 +151,14 @@ evaluateResponse(int ret){
 	  return 0;
 
 	case TTN_UNSUCESSFUL_RECEIVE:
-	  return 1; // Maybe still outstanding response
+		int tn;
+		tn = ttn.getStatus();
+		debugSerial.print("Status-Modem ");
+		debugSerial.println(tn);
+		if (tn == TTN_MDM_IDLE)
+			return 0; // Listening but Nothing left to send?
+		else
+			return 1; // Maybe still outstanding response
 
 	default:
 	case TTN_ERROR_UNEXPECTED_RESPONSE:
