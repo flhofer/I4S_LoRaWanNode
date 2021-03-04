@@ -16,10 +16,6 @@ static const char *devAddr = LORA_DEVADDR;
 static const char *nwkSKey = LORA_NWSKEY;
 static const char *appSKey = LORA_APSKEY;
 
-// Select frequency plan between TTN_FP_EU868 or TTN_FP_US915
-#define freqPlan TTN_FP_EU868
-#define MAXLORALEN	51			// maximum payload length 0-51 for DR0-2, 115 for DR3, 242 otherwise
-
 // Modem constructor
 static TheThingsNetwork ttn(loraSerial, debugSerial,
 					freqPlan, TTN_DEFAULT_SF, TTN_DEFAULT_FSB);

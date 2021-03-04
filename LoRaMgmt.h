@@ -11,6 +11,9 @@
 #include <stdint.h>
 #include "main.h"
 
+// Select frequency plan between TTN_FP_EU868 or TTN_FP_US915
+#define freqPlan TTN_FP_EU868
+#define MAXLORALEN	51			// maximum payload length 0-51 for DR0-2, 115 for DR3, 242 otherwise
 #define LORACHNMAX 16
 
 void LoRaMgmtSetup();
