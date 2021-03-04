@@ -40,15 +40,12 @@ const char prtSttReset[] PROGMEM = "Reset\n";
 const char prtSttRestart[] PROGMEM = "Restart - Init\n";
 const char prtSttEnd[] PROGMEM = "End test\n";
 const char prtSttPollErr[] PROGMEM = "Poll - No response from server.\n";
-const char prtSttLoop[] PROGMEM = "-- LOOP 10 Seconds --\n";
-const char prtSttSkipT[] PROGMEM = "Skip to next test\n";
-const char prtSttSKipG[] PROGMEM = "Skip to next test group\n";
-const char prtSttEndG[] PROGMEM = "End of test groups\n";
+const char prtSttDone[] PROGMEM = "done";
 const char prtSttErrExec[] PROGMEM = "ERROR: during state execution\n";
 const char prtSttErrText[] PROGMEM = "ERROR: test malfunction\n";
 const char prtSttWrnConf[] PROGMEM = "WARN: Invalid test configuration\n";
 
-PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttLoop, prtSttSkipT, prtSttSKipG, prtSttEndG, prtSttErrExec, prtSttErrText, prtSttWrnConf};
+PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttDone, prtSttErrExec, prtSttErrText, prtSttWrnConf};
 
 #define PRTSTTSTART 0
 #define PRTSTTPOLL 1
@@ -60,13 +57,10 @@ PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRe
 #define PRTSTTRESTART 7
 #define PRTSTTEND 8
 #define PRTSTTPOLLERR 9
-#define PRTSTTLOOP 10
-#define PRTSTTSKIPT 11
-#define PRTSTTSKIPG 12
-#define PRTSTTENDG 13
-#define PRTSTTERREXEC 14
-#define PRTSTTERRTEXT 15
-#define PRTSTTWRNCONF 16
+#define PRTSTTDONE 10
+#define PRTSTTERREXEC 11
+#define PRTSTTERRTEXT 12
+#define PRTSTTWRNCONF 13
 
 const char prtTblCR[] PROGMEM = " CR 4/";
 const char prtTblDR[] PROGMEM = " DR ";
@@ -527,7 +521,7 @@ runTest(testParam_t * testNow){
 	default:
 	case rEnd:
 		if (!testend)
-			printPrgMem(PRTSTTTBL, PRTSTTENDG);
+			printPrgMem(PRTSTTTBL, PRTSTTDONE);
 		testend = 1;
 	}
 
