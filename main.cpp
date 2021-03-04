@@ -314,14 +314,13 @@ runTest(testParam_t * testNow){
 
 	case rStart:
 
-		if (testNow->start)
-			if ((ret = testNow->start()) && ret != 1){
-				if (-9 == ret) // no chn -> pause for free-delay / active channels
-					delay(RESFREEDEL/actChan);
-				else
-					delay(100); // simple retry timer 100ms, e.g. busy
-				break;
-			}
+		if ((ret = LoRaMgmtSend()) && ret != 1){
+			if (-9 == ret) // no chn -> pause for free-delay / active channels
+				delay(RESFREEDEL/actChan);
+			else
+				delay(100); // simple retry timer 100ms, e.g. busy
+			break;
+		}
 
 		// sent but no response from confirmed, or not confirmed msg, goto poll
 		if (ret == 1 || !confirmed){
@@ -339,16 +338,15 @@ runTest(testParam_t * testNow){
 
 	case rRun:
 
-		if (testNow->run)
-			if ((ret = testNow->run()) && (confirmed || (pollcnt < UNCF_POLL))){
-				if (-9 == ret) // no chn -> pause for free-delay / active channels
-					delay(RESFREEDEL/actChan);
-				else if (1 == ret)
-					pollcnt++;
-				else
-					delay(100); // simple retry timer 100ms, e.g. busy
-				break;
-			}
+		if ((ret = LoRaMgmtPoll()) && (confirmed || (pollcnt < UNCF_POLL))){
+			if (-9 == ret) // no chn -> pause for free-delay / active channels
+				delay(RESFREEDEL/actChan);
+			else if (1 == ret)
+				pollcnt++;
+			else
+				delay(100); // simple retry timer 100ms, e.g. busy
+			break;
+		}
 
 		// Unconf polling ended and still no response, or confirmed and error message (end of retries)
 		if ((failed = (0 != ret)))
@@ -360,9 +358,6 @@ runTest(testParam_t * testNow){
 		// @suppress("No break at end of case")
 
 	case rStop:
-		if (testNow->stop)
-			if ((ret = testNow->stop()))
-				break;
 
 		retries++;
 		pollcnt=0;
@@ -382,10 +377,6 @@ runTest(testParam_t * testNow){
 		// @suppress("No break at end of case")
 
 	case rEvaluate:
-		if (testNow->evaluate)
-			if ((ret = testNow->evaluate()))
-				break;
-
 		printPrgMem(PRTSTTTBL, PRTSTTADDMEAS);
 
 		(void)LoRaMgmtGetResults(trn); // TODO: implement and use return value
@@ -434,10 +425,6 @@ runTest(testParam_t * testNow){
 		// @suppress("No break at end of case")
 
 	case rReset:
-		if (testNow->reset)
-			if ((ret = testNow->reset()))
-				break;
-
 		delay(RESFREEDEL/actChan); // delay for modem resource free
 		tstate = rInit;
 		printPrgMem(PRTSTTTBL, PRTSTTRESTART);
