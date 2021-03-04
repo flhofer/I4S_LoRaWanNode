@@ -315,12 +315,19 @@ void LoRaSetGblParam(bool confirm, int datalen){
  *
  * Return:	  - return 0 if OK, -1 if error
  */
-int LoRaSetChannels(uint16_t chnMsk){
+int LoRaSetChannels(uint16_t chnMsk, uint8_t drMin, uint8_t drMax){
 
   bool retVal = true;
+  long frq = 0;
 
-  for (int i=0; i<LORACHNMAX; i++, chnMsk >>=1)
-	retVal &= ttn.setChannelStatus((uint8_t)i, (bool)chnMsk & 0x01);
+  for (int i=0; i<LORACHNMAX; i++, chnMsk >>=1){
+	  // default only chnannels 1-8 are set
+	  if (i >= 8)
+		  frq = 864100000 + 200000 * (i - 8);
+
+	  retVal &= ttn.setChannel((uint8_t)i, frq, drMin, drMax);
+	  retVal &= ttn.setChannelStatus((uint8_t)i, (bool)chnMsk & 0x01);
+  }
 
   return !retVal * -1;
 }
