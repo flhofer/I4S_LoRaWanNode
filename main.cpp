@@ -22,11 +22,14 @@ void initPorts (void) __attribute__ ((naked)) __attribute__ ((section (".init3")
 
 /* EEPROM address */
 
- uint8_t EEMEM ee_bootCnt;	// reboot counter
+ uint8_t EEMEM ee_confirmed;	// store confirmed mode yes-no
+ uint8_t EEMEM ee_txPowerTst; 	// Tx power for the low power test
+ uint8_t EEMEM ee_dataLenMin;	// Minimum data length for test
+ uint8_t EEMEM ee_dataLenMax;	// Maximum data length for test
+
 
 /* PROGMEM string lists */
 
-const char prtSttReboot[] PROGMEM = "Reboot counter read from device: ";
 const char prtSttStart[] PROGMEM = "Start test\n";
 const char prtSttPoll[] PROGMEM = "Poll for answer\n";
 const char prtSttStop[] PROGMEM = "Stop test\n";
@@ -45,26 +48,25 @@ const char prtSttErrExec[] PROGMEM = "ERROR: during state execution\n";
 const char prtSttErrText[] PROGMEM = "ERROR: test malfunction\n";
 const char prtSttWrnConf[] PROGMEM = "WARN: Invalid test configuration\n";
 
-PGM_P const prtSttStr[] PROGMEM = {prtSttReboot, prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttLoop, prtSttSkipT, prtSttSKipG, prtSttEndG, prtSttErrExec, prtSttErrText, prtSttWrnConf};
+PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttLoop, prtSttSkipT, prtSttSKipG, prtSttEndG, prtSttErrExec, prtSttErrText, prtSttWrnConf};
 
-#define PRTSTTREBOOT 0
-#define PRTSTTSTART 1
-#define PRTSTTPOLL 2
-#define PRTSTTSTOP 3
-#define PRTSTTRETRY 4
-#define PRTSTTEVALUATE 5
-#define PRTSTTADDMEAS 6
-#define PRTSTTRESET 7
-#define PRTSTTRESTART 8
-#define PRTSTTEND 9
-#define PRTSTTPOLLERR 10
-#define PRTSTTLOOP 11
-#define PRTSTTSKIPT 12
-#define PRTSTTSKIPG 13
-#define PRTSTTENDG 14
-#define PRTSTTERREXEC 15
-#define PRTSTTERRTEXT 16
-#define PRTSTTWRNCONF 17
+#define PRTSTTSTART 0
+#define PRTSTTPOLL 1
+#define PRTSTTSTOP 2
+#define PRTSTTRETRY 3
+#define PRTSTTEVALUATE 4
+#define PRTSTTADDMEAS 5
+#define PRTSTTRESET 6
+#define PRTSTTRESTART 7
+#define PRTSTTEND 8
+#define PRTSTTPOLLERR 9
+#define PRTSTTLOOP 10
+#define PRTSTTSKIPT 11
+#define PRTSTTSKIPG 12
+#define PRTSTTENDG 13
+#define PRTSTTERREXEC 14
+#define PRTSTTERRTEXT 15
+#define PRTSTTWRNCONF 16
 
 const char prtTblCR[] PROGMEM = " CR 4/";
 const char prtTblDR[] PROGMEM = " DR ";
@@ -103,7 +105,11 @@ static char prntGrp;							// Actual executing group
 static int prntTno;								// actual executing testno
 static uint8_t actChan = 16;					// active channels
 static int prgend;								// is test-program terminated?
-static int dataLen = 1;							// data length to send over LoRa
+static uint8_t dataLen = 1;						// data length to send over LoRa for a test
+static uint8_t dataLenMin = 1;					// Min data length to send over LoRa
+static uint8_t dataLenMax = 255;				// Max data length to send over LoRa
+static uint8_t txPowerTst = 4;					// Max data length to send over LoRa
+static bool confirmed = true;					// TODO: implement menu and switch, BUT should it be changed?
 
 /* 	Globals		*/
 
@@ -245,6 +251,23 @@ uint8_t countSetBits(int n)
     return count;
 }
 
+void readEEPromSettings () {
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		confirmed = eeprom_read_byte(&ee_confirmed);
+		dataLenMin = eeprom_read_byte(&ee_dataLenMin);
+		dataLenMax = eeprom_read_byte(&ee_dataLenMax);
+		txPowerTst = eeprom_read_byte(&ee_txPowerTst);
+	}
+}
+
+void writeEEPromDefaults() { // for defaults
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+		eeprom_update_byte(&ee_confirmed, 1);
+		eeprom_update_byte(&ee_dataLenMin, 1);
+		eeprom_update_byte(&ee_dataLenMax, 255);
+		eeprom_update_byte(&ee_txPowerTst, 4);
+	}
+}
 
 /*************** TEST MANAGEMENT FUNCTIONS*****************/
 
@@ -260,7 +283,6 @@ enum testRun { 	rError = -1,
 			};
 
 static enum testRun tstate = rInit;
-static bool confirmed = true;	// TODO: implement menu and switch, BUT should it be changed?
 static int	retries; 			// un-conf send retries
 static int	pollcnt;			// un-conf poll retries
 
@@ -501,10 +523,6 @@ selectTest(){
 /*************** SYSTEM SETUP AND LOOP *****************/
 
 void initPorts(){
-	// board dependent settings for cross-compatibility
-	DDRB |= 0xF0;
-	PORTB = 0x00;
-
 	// Led 13 out
 	DDRC |= 0x80;
 	PORTC &= 0x7F;
@@ -529,19 +547,6 @@ void setup()
 	PORTC |= (0x01 << PINC7);
 	delay (500);
 	PORTC &= ~(0x01 << PINC7);
-
-	uint8_t val = 0;
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-		val = eeprom_read_byte(&ee_bootCnt);
-	}
-	
-	printPrgMem(PRTSTTTBL,PRTSTTREBOOT);
-	debugSerial.println(val);
-
-//	if (!debug)
-//		ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-//			eeprom_update_byte(&ee_bootCnt, ++val);
-//		}
 
 	LoRaMgmtSetup();
 
