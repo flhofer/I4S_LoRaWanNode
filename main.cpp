@@ -111,75 +111,40 @@ int debug = 1;
 
 // Test data structure
 typedef struct _testParam{
-	int (*init)(void);		// Hardware and RF preparation code
-	int (*start)(void);		// Start of test
-	int (*run)(void);		// dwelling status, i.e., wait for resutls
-	int (*stop)(void);		// closing state
-	int (*evaluate)(void);	// Computation of result
-	int (*reset)(void);		// Reset steps for a new run
+	uint16_t chnEnabled;	// Channels enabled for this test
+	uint8_t txPowerIdx;		// Initial TX power index
+	uint8_t drMax;			// data rate Maximum for the test
+	uint8_t drMin;			// data rate Minimum for the test
+	// RX1 Window
+	// RX1 delay
+	// RX1 DR offset
+	// RX2 Window
+	// RX2 delay
 } testParam_t;
-
-/*************** TEST FUNCTION CALL ********************/
-
-static int
-TT_InitMono(){
-
-	// Setup channels to MonoChannel
-	actChan = 1;
-	return LoRaSetChannels(0x01); // Enable channel 1 only;
-}
-
-static int
-TT_InitMonoTx(){
-
-	// Setup channels to MonoChannel
-	LoRaMgmTxPwr(4); // set to Index 4 = -8dB
-	return TT_InitMono();
-}
-
-static int
-TT_InitAll(){
-
-	// Setup channels to All standard channels
-	actChan = 1;
-	return LoRaSetChannels(0x01); // Enable channel 1 only;
-}
-
-static int
-TT_Eval(){
-
-	return 0;
-}
 
 /*************** TEST CONFIGURATIONS ********************/
 
 // Test definition
 static testParam_t testA1 = {
-	&TT_InitMono,
-	&LoRaMgmtSend,
-	&LoRaMgmtPoll,
-	NULL,
-	&TT_Eval,
-	NULL,
+	0x01,	// channels
+	0,		// TX
+	5,		// DR max
+	0		// DR min
 };
 
 // Test definition
 static testParam_t testB1 = {
-	&TT_InitMonoTx,
-	&LoRaMgmtSend,
-	&LoRaMgmtPoll,
-	NULL,
-	&TT_Eval,
-	NULL,
+	0x01,	// channels
+	4,		// TX
+	5,		// DR max
+	0		// DR min
 };
 
 static testParam_t testC1 = {
-	&TT_InitAll,
-	&LoRaMgmtSend,
-	&LoRaMgmtPoll,
-	NULL,
-	&TT_Eval,
-	NULL,
+	0xFF,	// channels
+	0,		// TX
+	5,		// DR max
+	0		// DR min
 };
 
 // Test group definition - A all remain the same
@@ -202,6 +167,7 @@ static testParam_t * testGrpB[] = {
 static testParam_t * testGrpC[] = {
 		testA1,
 		testA1,
+		testC1,
 		testC1,
 		testC1,
 		NULL // Terminator for automatic sizing
@@ -269,6 +235,17 @@ printTestResults(){
 		}
 }
 
+uint8_t countSetBits(int n)
+{
+	uint8_t count = 0;
+    while (n) {
+        n &= (n - 1);
+        count++;
+    }
+    return count;
+}
+
+
 /*************** TEST MANAGEMENT FUNCTIONS*****************/
 
 // Enumeration for test status
@@ -316,14 +293,19 @@ runTest(testParam_t * testNow){
 
 	case rInit:
 
-		if (testNow->init)
-			if ((ret = testNow->init()))
-				break;
-
 		// Set global test parameters
 		LoRaSetGblParam(confirmed, dataLen);
 		retries=0;
 		pollcnt=0;
+
+		// Setup channels as configured
+		actChan = countSetBits(testNow->chnEnabled);
+
+		if (LoRaSetChannels(testNow->chnEnabled)) // Enable channel 1 only;
+			break; // TODO: error
+
+		if (LoRaMgmtTxPwr(testNow->txPowerIdx)) // set power index;
+			break; // TODO: error
 
 		tstate = rStart;
 		printPrgMem(PRTSTTTBL, PRTSTTSTART);
