@@ -19,7 +19,7 @@
 void LoRaMgmtSetup();
 void LoRaSetGblParam(bool confirm, int datalen);
 
-int LoRaSetChannels(uint16_t chnMsk);
+int LoRaSetChannels(uint16_t chnMsk, uint8_t drMin, uint8_t drMax);
 
 int LoRaMgmtSend();
 int LoRaMgmtPoll();
