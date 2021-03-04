@@ -22,7 +22,7 @@ int LoRaMgmtSend();
 int LoRaMgmtPoll();
 int LoRaMgmtUpdt();
 int LoRaMgmtRcnf();
-int LoRaMgmTxPwr(uint8_t txPwr);
+int LoRaMgmtTxPwr(uint8_t txPwr);
 
 int LoRaMgmtGetResults(sLoRaResutls_t * res);
 
