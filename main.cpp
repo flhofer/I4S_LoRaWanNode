@@ -103,6 +103,7 @@ static char prntGrp;							// Actual executing group
 static int prntTno;								// actual executing testno
 static uint8_t actChan = 16;					// active channels
 static int prgend;								// is test-program terminated?
+static int dataLen = 1;							// data length to send over LoRa
 
 /* 	Globals		*/
 
@@ -110,8 +111,6 @@ int debug = 1;
 
 // Test data structure
 typedef struct _testParam{
-	int dataLen;			// Data length of the test data
-	int syncCode;			// DO sync code with jamming devices
 	int (*init)(void);		// Hardware and RF preparation code
 	int (*start)(void);		// Start of test
 	int (*run)(void);		// dwelling status, i.e., wait for resutls
@@ -131,11 +130,19 @@ TT_InitMono(){
 }
 
 static int
+TT_InitMonoTx(){
+
+	// Setup channels to MonoChannel
+	LoRaMgmTxPwr(4); // set to Index 4 = -8dB
+	return TT_InitMono();
+}
+
+static int
 TT_InitAll(){
 
 	// Setup channels to All standard channels
-	actChan = 8;
-	return LoRaSetChannels(0xFF); // Enable channels 1-8 only;
+	actChan = 1;
+	return LoRaSetChannels(0x01); // Enable channel 1 only;
 }
 
 static int
@@ -148,7 +155,6 @@ TT_Eval(){
 
 // Test definition
 static testParam_t testA1 = {
-	15, 0,
 	&TT_InitMono,
 	&LoRaMgmtSend,
 	&LoRaMgmtPoll,
@@ -157,8 +163,17 @@ static testParam_t testA1 = {
 	NULL,
 };
 
-static testParam_t testA2 = {
-	15, 0,
+// Test definition
+static testParam_t testB1 = {
+	&TT_InitMonoTx,
+	&LoRaMgmtSend,
+	&LoRaMgmtPoll,
+	NULL,
+	&TT_Eval,
+	NULL,
+};
+
+static testParam_t testC1 = {
 	&TT_InitAll,
 	&LoRaMgmtSend,
 	&LoRaMgmtPoll,
@@ -167,18 +182,28 @@ static testParam_t testA2 = {
 	NULL,
 };
 
-// Test group definition
+// Test group definition - A all remain the same
 static testParam_t * testGrpA[] = {
 		&testA1,
-		&testA2,
+		&testC1,
+		&testA1,
+		&testA1,
+		&testA1,
 		NULL // Terminator for automatic sizing
 };
 
 static testParam_t * testGrpB[] = {
+		&testA1,
+		&testB1,
+		&testA1,
 		NULL // Terminator for automatic sizing
 };
 
 static testParam_t * testGrpC[] = {
+		testA1,
+		testA1,
+		testC1,
+		testC1,
 		NULL // Terminator for automatic sizing
 };
 
@@ -263,18 +288,6 @@ static int	retries; 			// un-conf send retries
 static int	pollcnt;			// un-conf poll retries
 
 /*
- * writeSyncState: set sync for companion devices
- *
- * Arguments: - code to send to the other participants in test
- *
- * Return:	  -
- */
-static void
-writeSyncState(int syncCode){
-	PORTB = (PORTB & 0x0F) | (syncCode << 4);
-}
-
-/*
  * runTest: test runner
  *
  * Arguments: - pointer to test structure of actual test
@@ -307,10 +320,8 @@ runTest(testParam_t * testNow){
 			if ((ret = testNow->init()))
 				break;
 
-		writeSyncState(testNow->syncCode);
-
 		// Set global test parameters
-		LoRaSetGblParam(confirmed, testNow->dataLen);
+		LoRaSetGblParam(confirmed, dataLen);
 		retries=0;
 		pollcnt=0;
 
