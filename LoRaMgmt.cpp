@@ -353,3 +353,18 @@ int LoRaMgmtRcnf(){
 	return 0;
 }
 
+/*
+ * LoRaMgmTxPwr: set power index on modem
+ *
+ * Arguments: -
+ *
+ * Return:	  - return 0 if OK, -1 if error
+ */
+int LoRaMgmTxPwr(uint8_t txPwr){
+
+	ttn.setPowerIndex(txPwr);
+
+	return 0;
+}
+
+
