@@ -104,12 +104,15 @@ static sLoRaResutls_t * trn;					// Pointer to actual entry
 static char prntGrp;							// Actual executing group
 static int prntTno;								// actual executing testno
 static uint8_t actChan = 16;					// active channels
-static int prgend;								// is test-program terminated?
+static int testend = 1;							// is test terminated?
 static uint8_t dataLen = 1;						// data length to send over LoRa for a test
 static uint8_t dataLenMin = 1;					// Min data length to send over LoRa
 static uint8_t dataLenMax = 255;				// Max data length to send over LoRa
 static uint8_t txPowerTst = 4;					// Max data length to send over LoRa
 static bool confirmed = true;					// TODO: implement menu and switch, BUT should it be changed?
+
+static uint8_t testGrp = 1;						// Running variables number
+static uint8_t testNo = 1;						// "	"	number
 
 /* 	Globals		*/
 
@@ -171,11 +174,11 @@ static testParam_t * testGrpB[] = {
 };
 
 static testParam_t * testGrpC[] = {
-		testA1,
-		testA1,
-		testC1,
-		testC1,
-		testC1,
+		&testA1,
+		&testA1,
+		&testC1,
+		&testC1,
+		&testC1,
 		NULL // Terminator for automatic sizing
 };
 
@@ -269,6 +272,75 @@ void writeEEPromDefaults() { // for defaults
 	}
 }
 
+
+static testParam_t ** tno = NULL;
+static testParam_t *** tgrp = NULL;
+
+static unsigned long startTs = 0; // loop timer
+
+void readInput() {
+
+	char A;
+	while (debugSerial.available()){
+		A = debugSerial.read();
+		switch (A){
+		// read parameter, they come together
+		case 'g': // read test group
+			A = debugSerial.read();
+			A = A - 48;
+			if (A < 5 && A >= 0)
+				testGrp = A;
+			break;
+		case 't': // read test number to go
+			A = debugSerial.read();
+			A = A - 32;
+			if (A < 10 && A >= 0)
+				testNo = A;
+			break;
+		case 'u': // set to unconfirmed
+			confirmed = false;
+//			ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+//				eeprom_update_byte(&ee_confirmed, confirmed);
+//			}
+			break;
+		case 'c': // set to confirmed
+			confirmed = true;
+//			ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+//				eeprom_update_byte(&ee_confirmed, confirmed);
+//			}
+			break;
+		case 'p': // read tx power index
+			A = debugSerial.read();
+			A = A - 32;
+			if (A < 10 && A >= 0){
+				txPowerTst = A;
+				ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+					eeprom_update_byte(&ee_txPowerTst, txPowerTst);
+				}
+			}
+			break;
+
+		case 'r': // set to run
+			testend = false;
+
+			// run through tests to pick the right test
+			while (testGrp && *tgrp){
+				tgrp++; // next test group
+				testGrp--;
+			}
+			tno = *tgrp;
+			while (testNo && *tno){
+				tgrp++; // next test group
+				testNo--;
+			}
+			startTs = millis();
+			break;
+		// TODO: add data length menu
+		}
+	}
+
+}
+
 /*************** TEST MANAGEMENT FUNCTIONS*****************/
 
 // Enumeration for test status
@@ -323,7 +395,7 @@ runTest(testParam_t * testNow){
 		// Setup channels as configured
 		actChan = countSetBits(testNow->chnEnabled);
 
-		if (LoRaSetChannels(testNow->chnEnabled)) // Enable channel 1 only;
+		if (LoRaSetChannels(testNow->chnEnabled, testNow->drMin, testNow->drMax)) // set channels
 			break; // TODO: error
 
 		if (LoRaMgmtTxPwr(testNow->txPowerIdx)) // set power index;
@@ -454,7 +526,9 @@ runTest(testParam_t * testNow){
 
 	default:
 	case rEnd:
-		;
+		if (!testend)
+			printPrgMem(PRTSTTTBL, PRTSTTENDG);
+		testend = 1;
 	}
 
 	if (-1 == ret && (rStart != tstate) && (rRun != tstate) ){
@@ -463,61 +537,6 @@ runTest(testParam_t * testNow){
 	}
 
 	return tstate;
-}
-
-static testParam_t ** tno = NULL;
-static testParam_t *** tgrp = NULL;
-
-static unsigned long startTs = 0; // loop timer
-
-/*
- * selectTest: test organization and selection
- *
- * Arguments: -
- *
- * Return:	  -
- */
-static void
-selectTest(){
-
-	// end of tests groups?
-	if (!*tgrp){
-		if (!prgend)
-			printPrgMem(PRTSTTTBL, PRTSTTENDG);
-		prgend = 1;
-		return;
-	}
-
-	enum testRun res = runTest(*tno);
-
-	if (res == rError)
-		printPrgMem(PRTSTTTBL, PRTSTTERRTEXT);
-
-	// test ended
-	if ((res == rEnd || res == rError) && *tno){
-		printPrgMem(PRTSTTTBL, PRTSTTSKIPT);
-		tno++;
-		prntTno++;
-
-		printPrgMem(PRTSTTTBL, PRTSTTLOOP);
-
-		// compute time to 10 seconds, aware of unsigned
-		unsigned long wait = 10000l - min(10000l, (millis() - startTs));
-		delay(wait);
-		startTs = millis();
-	}
-
-	// end of tests of test group?
-	if (!*tno){
-		if (*tgrp){
-			tgrp++; // next test group
-			tno = *tgrp;
-			prntGrp++;
-			prntTno = 1;
-			printPrgMem(PRTSTTTBL, PRTSTTENDG);
-			startTs = millis();
-		}
-	}
 }
 
 /*************** SYSTEM SETUP AND LOOP *****************/
@@ -554,17 +573,19 @@ void setup()
 	tno = *tgrp; 			// assign pointer to pointer to test 1
 	trn = &testResults[0];	// Init results pointer
 
-	prntGrp = 'A';			// Actual executing group
-	prntTno = 1;			// actual executing testno
-
 	startTs = millis();		// snapshot starting time
 }
 
 void loop()
 {
-  // call test selector
-  selectTest();
-
+	if (testend)
+		readInput();
+	else{
+		if (*tno)
+			runTest(*tno);
+		else
+			printPrgMem(PRTSTTTBL, PRTSTTERRTEXT);
+	}
   // received something
   debugSerial.read();
 }
