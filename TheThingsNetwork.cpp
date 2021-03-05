@@ -1176,6 +1176,16 @@ bool TheThingsNetwork::setChannelStatus (uint8_t ch, bool status){
   return sendChSet(MAC_CHANNEL_STATUS, ch, buf);
 }
 
+bool TheThingsNetwork::setChannelDCycle (uint8_t ch, float dcycle){ // in percent
+  if (ch > 15 || dcycle > 100.0 || dcycle < 0.01)
+	return false;
+
+  char buf[6]; // number 99999
+  (void)sprintf(buf, "%u", (uint16_t)((100.0/dcycle) - 1));
+
+  return sendChSet(MAC_CHANNEL_DCYCLE, ch, buf);
+}
+
 bool TheThingsNetwork::setPowerIndex(uint8_t idx){
   char buf[4];
   sprintf(buf, "%u",idx);
