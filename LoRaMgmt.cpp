@@ -222,7 +222,7 @@ LoRaGetChannels(uint16_t * chnMsk){
   *chnMsk = 0;
 
   for (int i=0; i<LORACHNMAX; i++)
-	  *chnMsk |= ttn.getChannelStatus((uint8_t)i) << i;
+	  *chnMsk |= (uint16_t)ttn.getChannelStatus((uint8_t)i) << i;
 
   return (0 == *chnMsk) * -1; // error if mask is empty!
 }
