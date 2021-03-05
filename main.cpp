@@ -40,7 +40,7 @@ const char prtSttReset[] PROGMEM = "Reset\n";
 const char prtSttRestart[] PROGMEM = "Restart - Init\n";
 const char prtSttEnd[] PROGMEM = "End test\n";
 const char prtSttPollErr[] PROGMEM = "Poll - No response from server.\n";
-const char prtSttDone[] PROGMEM = "done";
+const char prtSttDone[] PROGMEM = "done\n";
 const char prtSttErrExec[] PROGMEM = "ERROR: during state execution\n";
 const char prtSttErrText[] PROGMEM = "ERROR: test malfunction\n";
 const char prtSttWrnConf[] PROGMEM = "WARN: Invalid test configuration\n";
@@ -104,7 +104,7 @@ static int testend = 1;							// is test terminated?
 static uint8_t dataLen = 1;						// data length to send over LoRa for a test
 static uint8_t dataLenMin = 1;					// Min data length to send over LoRa
 static uint8_t dataLenMax = 255;				// Max data length to send over LoRa
-static uint8_t txPowerTst = 4;					// Max data length to send over LoRa
+static uint8_t txPowerTst = 4;					// txPower setting for the low power test
 static bool confirmed = true;					// TODO: implement menu and switch, BUT should it be changed?
 
 static uint8_t testGrp = 1;						// Running variables number
@@ -236,8 +236,8 @@ printTestResults(){
 				prntGrp, prntTno, i, trn->timeTx, trn->timeRx,
 				trn->chnMsk, trn->txFrq, trn->txDR, trn->txPwr,
 				trn->rxRssi, trn->rxSnr);
-				debugSerial.println(buf);
-		}
+		debugSerial.println(buf);
+	}
 }
 
 uint8_t countSetBits(int n)
@@ -268,76 +268,12 @@ void writeEEPromDefaults() { // for defaults
 	}
 }
 
+/*************** TEST MANAGEMENT FUNCTIONS*****************/
 
 static testParam_t ** tno = NULL;
 static testParam_t *** tgrp = NULL;
 
 static unsigned long startTs = 0; // loop timer
-
-void readInput() {
-
-	char A;
-	while (debugSerial.available()){
-		A = debugSerial.read();
-		switch (A){
-		// read parameter, they come together
-		case 'g': // read test group
-			A = debugSerial.read();
-			A = A - 65;
-			if (A < 5 && A >= 0)
-				testGrp = A;
-			break;
-		case 't': // read test number to go
-			A = debugSerial.read();
-			A = A - 48;
-			if (A < 10 && A >= 0)
-				testNo = A;
-			break;
-		case 'u': // set to unconfirmed
-			confirmed = false;
-//			ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-//				eeprom_update_byte(&ee_confirmed, confirmed);
-//			}
-			break;
-		case 'c': // set to confirmed
-			confirmed = true;
-//			ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-//				eeprom_update_byte(&ee_confirmed, confirmed);
-//			}
-			break;
-		case 'p': // read tx power index
-			A = debugSerial.read();
-			A = A - 48;
-			if (A < 10 && A >= 0){
-				txPowerTst = A;
-//				ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-//					eeprom_update_byte(&ee_txPowerTst, txPowerTst);
-//				}
-			}
-			break;
-
-		case 'r': // set to run
-			testend = false;
-
-			// run through tests to pick the right test
-			while (testGrp && *tgrp){
-				tgrp++; // next test group
-				testGrp--;
-			}
-			tno = *tgrp;
-			while (testNo && *tno){
-				tgrp++; // next test group
-				testNo--;
-			}
-			startTs = millis();
-			break;
-		// TODO: add data length menu
-		}
-	}
-
-}
-
-/*************** TEST MANAGEMENT FUNCTIONS*****************/
 
 // Enumeration for test status
 enum testRun { 	rError = -1,
@@ -353,6 +289,88 @@ enum testRun { 	rError = -1,
 static enum testRun tstate = rInit;
 static int	retries; 			// un-conf send retries
 static int	pollcnt;			// un-conf poll retries
+
+void readInput() {
+
+	char A;
+	while (debugSerial.available()){
+		A = debugSerial.read();
+		switch (A){
+		// read parameter, they come together
+
+		case 'G':
+		case 'g': // read test group
+			A = debugSerial.read();
+			A = A - 65;
+			if (A < 5 && A >= 0)
+				testGrp = A;
+			break;
+
+		case 'T':
+		case 't': // read test number to go
+			A = debugSerial.read();
+			A = A - 48;
+			if (A < 10 && A >= 0)
+				testNo = A;
+			break;
+
+		case 'U':
+		case 'u': // set to unconfirmed
+			confirmed = false;
+			ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+				eeprom_update_byte(&ee_confirmed, confirmed);
+			}
+			break;
+
+		case 'C':
+		case 'c': // set to confirmed
+			confirmed = true;
+			ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+				eeprom_update_byte(&ee_confirmed, confirmed);
+			}
+			break;
+
+		case 'P':
+		case 'p': // read tx power index
+			A = debugSerial.read();
+			A = A - 48;
+			if (A < 10 && A >= 0){
+				txPowerTst = A;
+				ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+					eeprom_update_byte(&ee_txPowerTst, txPowerTst);
+				}
+			}
+			break;
+
+		case 'R':
+		case 'r': // set to run
+			testend = false;
+			prntGrp='A'+testGrp;
+			prntTno=testNo;
+			// run through tests to pick the right test
+			while (testGrp && *tgrp){
+				tgrp++; // next test group
+				testGrp--;
+			}
+			tno = *tgrp;
+			while (testNo && *tno){
+				tgrp++; // next test group
+				testNo--;
+			}
+			startTs = millis();
+			tstate = rInit;
+			break;
+
+		case 'd':
+		case 'D': // reset to defaults
+			writeEEPromDefaults();
+			readEEPromSettings();
+			break;
+		// TODO: add data length menu
+		}
+	}
+
+}
 
 /*
  * runTest: test runner
@@ -371,22 +389,20 @@ runTest(testParam_t * testNow){
 		return rError;
 	}
 
-	// reset status on next test
-	if (rEnd == tstate || rError == tstate ){
-		tstate = rInit; // we don't call with error/end
-		memset(testResults,0, sizeof(testResults));
-		trn = &testResults[0];	// Init results pointer
- 	}
 
 	int ret = 0;
 	switch(tstate){
 
 	case rInit:
 
-		// Set global test parameters
-		LoRaSetGblParam(confirmed, dataLen);
+		// reset status on next test
+		memset(testResults,0, sizeof(testResults));
+		trn = &testResults[0];	// Init results pointer
 		retries=0;
 		pollcnt=0;
+
+		// Set global test parameters
+		LoRaSetGblParam(confirmed, dataLen);
 
 		// Setup channels as configured
 		actChan = countSetBits(testNow->chnEnabled);
@@ -501,9 +517,9 @@ runTest(testParam_t * testNow){
 
 		// End of tests?
 		if (trn >= &testResults[TST_MXRSLT-1]){
-			tstate = rEnd;
 			printPrgMem(PRTSTTTBL, PRTSTTEND);
 			printTestResults();
+			tstate = rEnd;
 			break;
 		}
 
@@ -515,9 +531,11 @@ runTest(testParam_t * testNow){
 		// @suppress("No break at end of case")
 
 	case rReset:
-		delay(RESFREEDEL/actChan); // delay for modem resource free
-		tstate = rInit;
+//		delay(RESFREEDEL/actChan); // delay for modem resource free
+		retries=0;
+		pollcnt=0;
 		printPrgMem(PRTSTTTBL, PRTSTTRESTART);
+		tstate = rStart;
 		break;
 
 	default:
@@ -586,6 +604,6 @@ void loop()
 		else
 			printPrgMem(PRTSTTTBL, PRTSTTERRTEXT);
 	}
-  // received something
-  debugSerial.read();
+	// received something
+	// debugSerial.read();
 }
