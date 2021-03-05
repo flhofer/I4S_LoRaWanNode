@@ -23,4 +23,22 @@ All core and library folders are supplied by Sloeber.
     
 ## Notes on versions
 
-The used Arduino core is AVR 1.8.3 and the RN2483 module mounts a FW version 1.0.5, strictly needed to enable class C operation.
+The used Arduino core is AVR 1.8.3 and the RN2483 module mounts a FW version 1.0.5, strictly needed to enable class C operation. The firmware of the module can be updated via `ICSP`, or via USB using the Arduino as a bridge. NOTE: be careful to select the correct file for the USB update or the modem will get unusable and can only be recovered via ICSP. More info about Pickit3 and how to use the ICSP [here](https://components101.com/misc/pickit3-programmer-debugger-pinout-connections-datasheet).
+
+## Usage
+
+The latest test software has been boiled down to a simple (non-interactive) menu. Once booted, the prompt `Select test:` asks for user input on the test to be executed.
+
+```
+'t' : test accompanied by a single digit number
+'g' : group accompanied by a capital test group letter
+'r' : run the test
+'u' : set to unconfirmed test execution 
+'c' : set to confirmed test execution 
+'p' : set power index for tests accompanied by a digit number
+```
+
+The codes can also be put together in the same string, with or without spaces. All letters after 'r' may be ignored. This setup has been devised to be used with an external logging script.
+
+
+ 
