@@ -483,7 +483,11 @@ bool TheThingsNetwork::getChannelStatus (uint8_t ch)
   sendCommand(MAC_CH_TABLE, MAC_CHANNEL_STATUS, true, false);
   modemStream->write(str);
   modemStream->write(SEND_MSG);
-  return (pgmstrcmp(buffer, CMP_ON) != 0); // true if on, false if off or an error occurs
+
+  if (readLine(buffer, sizeof(buffer)))
+	  return (pgmstrcmp(buffer, CMP_ON) == 0); // true if on, false if off or an error occurs
+  else
+	  return false; // error
 }
 
 ttn_response_code_t TheThingsNetwork::getLastError(){
