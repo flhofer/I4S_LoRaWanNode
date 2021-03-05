@@ -14,7 +14,7 @@
 
 #define UNCF_POLL	5			// How many times to poll
 #define TST_RETRY	5			// How many times retry to send message
-#define TST_MXRSLT	50			// What's the max number of test results we allow?
+#define TST_MXRSLT	30			// What's the max number of test results we allow?
 #define RESFREEDEL	40000		// ~resource freeing delay ETSI requirement air-time reduction
 
 // Allocate initPorts in init section3 of code
@@ -44,8 +44,9 @@ const char prtSttDone[] PROGMEM = "done";
 const char prtSttErrExec[] PROGMEM = "ERROR: during state execution\n";
 const char prtSttErrText[] PROGMEM = "ERROR: test malfunction\n";
 const char prtSttWrnConf[] PROGMEM = "WARN: Invalid test configuration\n";
+const char prtSttSelect[] PROGMEM = "Select Test:\n";
 
-PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttDone, prtSttErrExec, prtSttErrText, prtSttWrnConf};
+PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttDone, prtSttErrExec, prtSttErrText, prtSttWrnConf, prtSttSelect};
 
 #define PRTSTTSTART 0
 #define PRTSTTPOLL 1
@@ -61,6 +62,7 @@ PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRe
 #define PRTSTTERREXEC 11
 #define PRTSTTERRTEXT 12
 #define PRTSTTWRNCONF 13
+#define PRTSTTSELECT 14
 
 const char prtTblCR[] PROGMEM = " CR 4/";
 const char prtTblDR[] PROGMEM = " DR ";
@@ -308,9 +310,9 @@ void readInput() {
 			A = A - 32;
 			if (A < 10 && A >= 0){
 				txPowerTst = A;
-				ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-					eeprom_update_byte(&ee_txPowerTst, txPowerTst);
-				}
+//				ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
+//					eeprom_update_byte(&ee_txPowerTst, txPowerTst);
+//				}
 			}
 			break;
 
@@ -389,11 +391,11 @@ runTest(testParam_t * testNow){
 		// Setup channels as configured
 		actChan = countSetBits(testNow->chnEnabled);
 
-		if (LoRaSetChannels(testNow->chnEnabled, testNow->drMin, testNow->drMax)) // set channels
+		if ((LoRaSetChannels(testNow->chnEnabled, testNow->drMin, testNow->drMax)) // set channels
+			|| (LoRaMgmtTxPwr(testNow->txPowerIdx))) { // set power index;
+			tstate = rError;
 			break; // TODO: error
-
-		if (LoRaMgmtTxPwr(testNow->txPowerIdx)) // set power index;
-			break; // TODO: error
+		}
 
 		tstate = rStart;
 		printPrgMem(PRTSTTTBL, PRTSTTSTART);
@@ -520,8 +522,10 @@ runTest(testParam_t * testNow){
 
 	default:
 	case rEnd:
-		if (!testend)
+		if (!testend){
 			printPrgMem(PRTSTTTBL, PRTSTTDONE);
+			printPrgMem(PRTSTTTBL, PRTSTTSELECT);
+		}
 		testend = 1;
 	}
 
@@ -568,6 +572,8 @@ void setup()
 	trn = &testResults[0];	// Init results pointer
 
 	startTs = millis();		// snapshot starting time
+
+	printPrgMem(PRTSTTTBL, PRTSTTSELECT);
 }
 
 void loop()
