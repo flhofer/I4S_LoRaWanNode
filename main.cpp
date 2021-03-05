@@ -132,7 +132,7 @@ typedef struct _testParam{
 // Test definition
 static testParam_t testA1 = {
 	0x01,	// channels
-	0,		// TX
+	1,		// TX
 	5,		// DR max
 	0		// DR min
 };
@@ -147,7 +147,7 @@ static testParam_t testB1 = {
 
 static testParam_t testC1 = {
 	0xFF,	// channels
-	0,		// TX
+	1,		// TX
 	5,		// DR max
 	0		// DR min
 };
@@ -283,13 +283,13 @@ void readInput() {
 		// read parameter, they come together
 		case 'g': // read test group
 			A = debugSerial.read();
-			A = A - 48;
+			A = A - 65;
 			if (A < 5 && A >= 0)
 				testGrp = A;
 			break;
 		case 't': // read test number to go
 			A = debugSerial.read();
-			A = A - 32;
+			A = A - 48;
 			if (A < 10 && A >= 0)
 				testNo = A;
 			break;
@@ -307,7 +307,7 @@ void readInput() {
 			break;
 		case 'p': // read tx power index
 			A = debugSerial.read();
-			A = A - 32;
+			A = A - 48;
 			if (A < 10 && A >= 0){
 				txPowerTst = A;
 //				ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
