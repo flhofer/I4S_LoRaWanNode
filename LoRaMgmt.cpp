@@ -317,11 +317,12 @@ int LoRaSetChannels(uint16_t chnMsk, uint8_t drMin, uint8_t drMax){
   long frq = 0;
 
   for (int i=0; i<LORACHNMAX; i++, chnMsk >>=1){
-	  // default only chnannels 1-8 are set
+	  // default TTN only channels 1-8 are set
 	  if (i >= 8)
 		  frq = 864100000 + 200000 * (i - 8);
 
 	  retVal &= ttn.setChannel((uint8_t)i, frq, drMin, drMax);
+	  retVal &= ttn.setChannelDCycle((uint8_t)i, 100.0);
 	  retVal &= ttn.setChannelStatus((uint8_t)i, (bool)chnMsk & 0x01);
   }
 
