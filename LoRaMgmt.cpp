@@ -172,7 +172,7 @@ evaluateResponse(int ret){
  *
  * Arguments: -
  *
- * Return:	  status of polling, 0 ok, -1 error, 1 busy
+ * Return:	  status of sending, 0 ok, -1 error, 1 busy
  */
 int LoRaMgmtSend(){
 
@@ -280,7 +280,7 @@ void LoRaMgmtSetup(){
 	debugSerial.print("Watchdog timer set to [ms] ");
 	debugSerial.println(wdt);
 
-	// set to LorIoT standard RX, DR = 0
+	// set to LorIoT standard RX, DR = 0, not default
 	ttn.setRx2Channel(869525000, 0);
 }
 

@@ -45,8 +45,9 @@ const char prtSttErrExec[] PROGMEM = "ERROR: during state execution\n";
 const char prtSttErrText[] PROGMEM = "ERROR: test malfunction\n";
 const char prtSttWrnConf[] PROGMEM = "WARN: Invalid test configuration\n";
 const char prtSttSelect[] PROGMEM = "Select Test:\n";
+const char prtSttResults[] PROGMEM = "Results:\n";
 
-PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttDone, prtSttErrExec, prtSttErrText, prtSttWrnConf, prtSttSelect};
+PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttDone, prtSttErrExec, prtSttErrText, prtSttWrnConf, prtSttSelect, prtSttResults};
 
 #define PRTSTTSTART 0
 #define PRTSTTPOLL 1
@@ -63,6 +64,7 @@ PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRe
 #define PRTSTTERRTEXT 12
 #define PRTSTTWRNCONF 13
 #define PRTSTTSELECT 14
+#define PRTSTTRESULTS 15
 
 const char prtTblCR[] PROGMEM = " CR 4/";
 const char prtTblDR[] PROGMEM = " DR ";
@@ -230,7 +232,7 @@ printTestResults(){
 	// for printing
 	char buf[128];
 
-	debugSerial.println("Results");
+	printPrgMem(PRTSTTTBL, PRTSTTRESULTS);
 	for (int i = 1; i<= TST_MXRSLT; i++, trn++){
 		sprintf(buf, "%c;%02d;%02d;%07lu;%07lu;0x%02X;%lu;%02u;%02d;%03d;%03d",
 				prntGrp, prntTno, i, trn->timeTx, trn->timeRx,
@@ -292,7 +294,7 @@ static int	pollcnt;			// un-conf poll retries
 
 void readInput() {
 
-	char A;
+	signed char A;
 	while (debugSerial.available()){
 		A = debugSerial.read();
 		switch (A){
