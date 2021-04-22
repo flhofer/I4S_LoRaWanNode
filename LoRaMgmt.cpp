@@ -11,6 +11,8 @@
 #include "TheThingsNetwork.h"	// LoRaWan library by TTN
 #include <stdlib.h>				// AVR standard library
 
+#define freqPlan TTN_FP_EU868
+
 // DevAddr, NwkSKey, AppSKey and the frequency plan
 static const char *devAddr = LORA_DEVADDR;
 static const char *nwkSKey = LORA_NWSKEY;
@@ -355,6 +357,17 @@ int LoRaMgmtRcnf(){
 		ttn.reset(1); // reset with adr on
 
 	return 0;
+}
+
+/*
+ * LoRaMgmtSetup: setup LoRaWan communication with modem
+ *
+ * Arguments: -
+ *
+ * Return:	  - return 0 if OK, -1 if error
+ */
+int LoRaMgmtSetupDumb(long FRQ){
+
 }
 
 /*
