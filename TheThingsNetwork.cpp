@@ -620,15 +620,7 @@ void TheThingsNetwork::reset(bool adr)
 
   readResponse(SYS_TABLE, SYS_TABLE, SYS_GET_HWEUI, buffer, sizeof(buffer));
   sendMacSet(MAC_DEVEUI, buffer);
-  if (adr)
-  {
-    sendMacSet(MAC_ADR, "on");
-  }
-  else
-  {
-    sendMacSet(MAC_ADR, "off");
-  }
-  this->adr = adr;
+  this->setADR(adr);
   this->needsHardReset = false;
 }
 
@@ -1200,6 +1192,20 @@ bool TheThingsNetwork::setDR(uint8_t dr){
   char buf[4];
   sprintf(buf, "%u",dr);
   return sendMacSet(MAC_DR, buf);
+}
+
+bool TheThingsNetwork::setADR(bool adr){
+	bool ret;
+	if (adr)
+	{
+		ret = sendMacSet(MAC_ADR, "on");
+	}
+	else
+	{
+		ret = sendMacSet(MAC_ADR, "off");
+	}
+	this->adr = adr;
+	return ret;
 }
 
 bool TheThingsNetwork::setSF(uint8_t sf)

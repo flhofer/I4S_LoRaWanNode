@@ -177,6 +177,6 @@ public:
   bool setChannelStatus (uint8_t ch, bool status);
   bool setPowerIndex(uint8_t idx);
   bool setDR(uint8_t dr);
+  bool setADR(bool adr);
 };
-
 #endif
