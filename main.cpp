@@ -6,36 +6,25 @@
  */
 
 #include "main.h"
+#include "LoRaMgmt.h"			// LoRaWan modem management
 
 #include <util/atomic.h>		// Protected block routines
 #include <avr/eeprom.h>			// EEPROM functions
 
-#include "LoRaMgmt.h"			// LoRaWan modem management
-
-#define UNCF_POLL	5			// How many times to poll
-#define TST_RETRY	5			// How many times retry to send message
 #define TST_MXRSLT	30			// What's the max number of test results we allow?
-#define RESFREEDEL	40000		// ~resource freeing delay ETSI requirement air-time reduction
+#define LEDBUILDIN	PORTC7		// AVR build in led position, PORT C
+#define KEYBUFF		73			// Max total usage of key buffers = 32 + 32 + 16 + 3*\0
+#define KEYSIZE		32			// 32
 
 // Allocate initPorts in init section3 of code
 void initPorts (void) __attribute__ ((naked)) __attribute__ ((section (".init3")));
 
-/* EEPROM address */
-
- uint8_t EEMEM ee_confirmed;	// store confirmed mode yes-no
- uint8_t EEMEM ee_txPowerTst; 	// Tx power for the low power test
- uint8_t EEMEM ee_dataLenMin;	// Minimum data length for test
- uint8_t EEMEM ee_dataLenMax;	// Maximum data length for test
-
-
 /* PROGMEM string lists */
-
 const char prtSttStart[] PROGMEM = "Start test\n";
 const char prtSttPoll[] PROGMEM = "Poll for answer\n";
 const char prtSttStop[] PROGMEM = "Stop test\n";
 const char prtSttRetry[] PROGMEM = "Retry\n";
 const char prtSttEvaluate[] PROGMEM = "Evaluate\n";
-const char prtSttAddMeas[] PROGMEM = " - add measurement\n";
 const char prtSttReset[] PROGMEM = "Reset\n";
 const char prtSttRestart[] PROGMEM = "Restart - Init\n";
 const char prtSttEnd[] PROGMEM = "End test\n";
@@ -47,24 +36,23 @@ const char prtSttWrnConf[] PROGMEM = "WARN: Invalid test configuration\n";
 const char prtSttSelect[] PROGMEM = "Select Test:\n";
 const char prtSttResults[] PROGMEM = "Results:\n";
 
-PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttAddMeas, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttDone, prtSttErrExec, prtSttErrText, prtSttWrnConf, prtSttSelect, prtSttResults};
+PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttDone, prtSttErrExec, prtSttErrText, prtSttWrnConf, prtSttSelect, prtSttResults};
 
 #define PRTSTTSTART 0
 #define PRTSTTPOLL 1
 #define PRTSTTSTOP 2
 #define PRTSTTRETRY 3
 #define PRTSTTEVALUATE 4
-#define PRTSTTADDMEAS 5
-#define PRTSTTRESET 6
-#define PRTSTTRESTART 7
-#define PRTSTTEND 8
-#define PRTSTTPOLLERR 9
-#define PRTSTTDONE 10
-#define PRTSTTERREXEC 11
-#define PRTSTTERRTEXT 12
-#define PRTSTTWRNCONF 13
-#define PRTSTTSELECT 14
-#define PRTSTTRESULTS 15
+#define PRTSTTRESET 5
+#define PRTSTTRESTART 6
+#define PRTSTTEND 7
+#define PRTSTTPOLLERR 8
+#define PRTSTTDONE 9
+#define PRTSTTERREXEC 10
+#define PRTSTTERRTEXT 11
+#define PRTSTTWRNCONF 12
+#define PRTSTTSELECT 13
+#define PRTSTTRESULTS 14
 
 const char prtTblCR[] PROGMEM = " CR 4/";
 const char prtTblDR[] PROGMEM = " DR ";
@@ -97,97 +85,14 @@ PGM_P const prtTblStr[] PROGMEM = {prtTblCR, prtTblDR, prtTblChnMsk, prtTblFrq, 
 
 /* Locals 		*/
 
+// Working variables
 static sLoRaResutls_t testResults[TST_MXRSLT];	// Storage for test results
-static sLoRaResutls_t * trn;					// Pointer to actual entry
-static char prntGrp;							// Actual executing group
-static int prntTno;								// actual executing testno
-static uint8_t actChan = 16;					// active channels
-static int testend = 1;							// is test terminated?
-static uint8_t dataLen = 1;						// data length to send over LoRa for a test
-static uint8_t dataLenMin = 1;					// Min data length to send over LoRa
-static uint8_t dataLenMax = 255;				// Max data length to send over LoRa
-static uint8_t txPowerTst = 4;					// txPower setting for the low power test
-static bool confirmed = true;					// TODO: implement menu and switch, BUT should it be changed?
-
-static uint8_t testGrp = 1;						// Running variables number
-static uint8_t testNo = 1;						// "	"	number
+static sLoRaConfiguration_t newConf;			// test Configuration
+static char keyArray[KEYBUFF];					// static array containing init keys
 
 /* 	Globals		*/
 
 int debug = 1;
-
-// Test data structure
-typedef struct _testParam{
-	uint16_t chnEnabled;	// Channels enabled for this test
-	uint8_t txPowerIdx;		// Initial TX power index
-	uint8_t drMax;			// data rate Maximum for the test
-	uint8_t drMin;			// data rate Minimum for the test
-	// RX1 Window
-	// RX1 delay
-	// RX1 DR offset
-	// RX2 Window
-	// RX2 delay
-} testParam_t;
-
-/*************** TEST CONFIGURATIONS ********************/
-
-// Test definition
-static testParam_t testA1 = {
-	0x01,	// channels
-	1,		// TX
-	5,		// DR max
-	0		// DR min
-};
-
-// Test definition
-static testParam_t testB1 = {
-	0x01,	// channels
-	4,		// TX
-	5,		// DR max
-	0		// DR min
-};
-
-static testParam_t testC1 = {
-	0xFF,	// channels
-	1,		// TX
-	5,		// DR max
-	0		// DR min
-};
-
-// Test group definition - A all remain the same
-static testParam_t * testGrpA[] = {
-		&testA1,
-		&testC1,
-		&testA1,
-		&testA1,
-		&testA1,
-		NULL // Terminator for automatic sizing
-};
-
-static testParam_t * testGrpB[] = {
-		&testA1,
-		&testB1,
-		&testA1,
-		NULL // Terminator for automatic sizing
-};
-
-static testParam_t * testGrpC[] = {
-		&testA1,
-		&testA1,
-		&testC1,
-		&testC1,
-		&testC1,
-		NULL // Terminator for automatic sizing
-};
-
-// All tests grouped
-static testParam_t **testConfig[] = { // array of testParam_t**
-		testGrpA, // array of testParam_t* (by reference), pointer to first testParam_t* in array
-		testGrpB,
-		testGrpC,
-		NULL // Terminator for automatic sizing
-};
-
 
 /*************** MIXED STUFF ********************/
 
@@ -561,8 +466,8 @@ runTest(testParam_t * testNow){
 
 void initPorts(){
 	// Led 13 out
-	DDRC |= 0x80;
-	PORTC &= 0x7F;
+	DDRC |= (0x01 << LEDBUILDIN);
+	PORTC &= ~(0x01 << LEDBUILDIN);
 }
 
 void setup()
@@ -580,10 +485,10 @@ void setup()
 		debug = ((waitSE));	// reset debug flag if time is elapsed
 	}
 
-	// Blink once PIN13 to show program start
-	PORTC |= (0x01 << PINC7);
+	// Blink once Led buildin to show program start
+	PORTC |= (0x01 << LEDBUILDIN);
 	delay (500);
-	PORTC &= ~(0x01 << PINC7);
+	PORTC &= ~(0x01 << LEDBUILDIN);
 
 	LoRaMgmtSetup();
 
