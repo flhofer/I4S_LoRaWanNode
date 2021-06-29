@@ -32,27 +32,29 @@ const char prtSttPollErr[] PROGMEM = "Poll - No response from server.\n";
 const char prtSttDone[] PROGMEM = "done\n";
 const char prtSttErrExec[] PROGMEM = "ERROR: during state execution\n";
 const char prtSttErrText[] PROGMEM = "ERROR: test malfunction\n";
-const char prtSttWrnConf[] PROGMEM = "WARN: Invalid test configuration\n";
 const char prtSttSelect[] PROGMEM = "Select Test:\n";
 const char prtSttResults[] PROGMEM = "Results:\n";
+const char prtSttValLong[] PROGMEM = "Error: too long value!\n";
+const char prtSttValLongH[] PROGMEM = "Error: too long value! Remember using h to terminate hex\n";
 
-PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttDone, prtSttErrExec, prtSttErrText, prtSttWrnConf, prtSttSelect, prtSttResults};
+PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttDone, prtSttErrExec, prtSttErrText, prtSttSelect, prtSttResults, prtSttValLong, prtSttValLongH};
 
-#define PRTSTTSTART 0
-#define PRTSTTPOLL 1
-#define PRTSTTSTOP 2
-#define PRTSTTRETRY 3
-#define PRTSTTEVALUATE 4
-#define PRTSTTRESET 5
-#define PRTSTTRESTART 6
-#define PRTSTTEND 7
-#define PRTSTTPOLLERR 8
-#define PRTSTTDONE 9
-#define PRTSTTERREXEC 10
-#define PRTSTTERRTEXT 11
-#define PRTSTTWRNCONF 12
-#define PRTSTTSELECT 13
-#define PRTSTTRESULTS 14
+#define PRTSTTSTART		0
+#define PRTSTTPOLL		1
+#define PRTSTTSTOP		2
+#define PRTSTTRETRY		3
+#define PRTSTTEVALUATE	4
+#define PRTSTTRESET		5
+#define PRTSTTRESTART	6
+#define PRTSTTEND		7
+#define PRTSTTPOLLERR	8
+#define PRTSTTDONE		9
+#define PRTSTTERREXEC	10
+#define PRTSTTERRTEXT	11
+#define PRTSTTSELECT	12
+#define PRTSTTRESULTS	13
+#define PRTSTTVALLONG	14
+#define PRTSTTVALLONGH	15
 
 const char prtTblCR[] PROGMEM = " CR 4/";
 const char prtTblDR[] PROGMEM = " DR ";
@@ -68,17 +70,17 @@ const char prtTblTms[] PROGMEM = " ms";
 
 PGM_P const prtTblStr[] PROGMEM = {prtTblCR, prtTblDR, prtTblChnMsk, prtTblFrq, prtTblPwr, prtTblRssi, prtTblSnr, prtTblTTx, prtTblTRx, prtTblTTl, prtTblTms};
 
-#define PRTTBLCR 0
-#define PRTTBLDR 1
+#define PRTTBLCR	0
+#define PRTTBLDR	1
 #define PRTTBLCHMSK 2
-#define PRTTBLFRQ 3
-#define PRTTBLPWR 4
-#define PRTTBLRSSI 5
-#define PRTTBLSNR 6
-#define PRTTBLTTX 7
-#define PRTTBLTRX 8
-#define PRTTBLTTL 9
-#define PRTTBLTMS 10
+#define PRTTBLFRQ	3
+#define PRTTBLPWR	4
+#define PRTTBLRSSI	5
+#define PRTTBLSNR	6
+#define PRTTBLTTX	7
+#define PRTTBLTRX	8
+#define PRTTBLTTL	9
+#define PRTTBLTMS	10
 
 #define PRTSTTTBL 0
 #define PRTTBLTBL 1
@@ -94,8 +96,19 @@ static char keyArray[KEYBUFF];					// static array containing init keys
 
 int debug = 1;
 
+/* Declarations */
+static void printPrgMem(int tbl, int pos);
+
 /*************** MIXED STUFF ********************/
 
+/*
+ * printScaled(): Print integer as scaled value
+ *
+ * Arguments:	- value to print
+ * 				- scale in x-ths, default (1/1000th)
+ *
+ * Return:		-
+ */
 static void
 printScaled(uint32_t value, uint32_t Scale = 1000){
 	debugSerial.print(value / Scale);
@@ -110,6 +123,152 @@ printScaled(uint32_t value, uint32_t Scale = 1000){
 		debugSerial.print(value);
 }
 
+/*
+ * printTestResults(): Print LoRaWan communication test
+ *
+ * Arguments:	- count to print
+ *
+ * Return:		-
+ */
+static void
+printTestResults(int count){
+	// use all local, do not change global
+	sLoRaResutls_t * trn = &testResults[0]; // Initialize results pointer
+
+	// for printing
+	char buf[128];
+
+	debugSerial.print(prtSttResults);
+	for (int i = 1; i<= min(TST_MXRSLT, count); i++, trn++){
+		sprintf(buf, "%02d;%07lu;%07lu;%07lu;%07lu;0x%02X;%lu;%02u;%02d;%03d;%03d",
+				i, trn->testTime, trn->txCount, trn->timeTx, trn->timeRx,
+				trn->chnMsk, trn->txFrq, trn->txDR, trn->txPwr,
+				trn->rxRssi, trn->rxSnr);
+		debugSerial.println(buf);
+	}
+}
+
+/*
+ * readSerialS(): parsing hex input strings
+ *
+ * Arguments:	- pointer to char* to put string
+ *
+ * Return:		-
+ */
+static void
+readSerialS(char * retVal, int len){
+	char nChar;
+	int pos = 0;
+	retVal[0] = '\0';
+	while (1){
+		if (pos > len ){
+			printPrgMem(PRTSTTTBL, PRTSTTVALLONGH);
+			break;
+		}
+
+		nChar = debugSerial.peek();
+		switch (nChar)
+		{
+			case '0' ... '9': // Digits
+			case 'A' ... 'F': // capital letters A-F
+			case 'a' ... 'f': // small letters a-f
+				debugSerial.read();
+				retVal[pos] = nChar;
+				pos++;
+				break;
+			case 'h':	// hex termination
+				debugSerial.read();
+				// fall-through
+				// @suppress("No break at end of case")
+			default:	// Not a number or HEX char/terminator
+				retVal[pos] = '\0';
+				return;
+		}
+	}
+	retVal[pos-1] = '\0';
+	return;
+}
+
+/*
+ * readSerialH(): parsing hex input strings
+ *
+ * Arguments:	-
+ *
+ * Return:		- Hex number read
+ */
+static uint16_t
+readSerialH(){
+	char nChar;
+	uint16_t retVal = 0;
+	while (1){
+		nChar = debugSerial.peek();
+		if ((UINT16_MAX >> 4) < retVal && nChar != 'h'){
+			printPrgMem(PRTSTTTBL, PRTSTTVALLONGH);
+			break;
+		}
+		switch (nChar)
+		{
+			case '0' ... '9': // Digits
+				debugSerial.read();
+				retVal = retVal<<4 | (int16_t)(nChar - '0');
+				break;
+			case 'A' ... 'F': // capital letters A-F
+				debugSerial.read();
+				retVal = retVal<<4 | (int16_t)(nChar - 55); // 55 = A - 10
+				break;
+			case 'a' ... 'f': // small letters a-f
+				debugSerial.read();
+				retVal = retVal<<4 | (int16_t)(nChar - 87); // 87 = a - 10
+				break;
+			case 'h':	// hex termination
+				debugSerial.read();
+				// fall-through
+				// @suppress("No break at end of case")
+			default:	// Not a number or HEX char/terminator
+				return retVal;
+		}
+
+	}
+	return retVal;
+}
+
+/*
+ * readSerialD(): parsing numeric input strings
+ *
+ * Arguments:	-
+ *
+ * Return:		- number read
+ */
+static uint16_t
+readSerialD(){
+	char A;
+	uint16_t retVal = 0;
+	while ((A = debugSerial.peek())
+			&& (A < 58 && A >= 48)){
+		if (log10((double)retVal) >= 4.0f ){
+			printPrgMem(PRTSTTTBL, PRTSTTVALLONG);
+			debugSerial.println();
+			break;
+		}
+		debugSerial.read();
+		retVal = retVal*10 + (int16_t)(A - 48);
+	}
+	return retVal;
+}
+
+static void
+resetKeyBuffer(){
+	memset(keyArray, 0, KEYBUFF );
+
+	// key slots are the same for OTAA and ABP (union)
+	newConf.appEui = &(keyArray[0]);			// Hex 32
+	newConf.appKey = &(keyArray[KEYSIZE+1]);	// Hex 32
+	newConf.devEui = &(keyArray[KEYSIZE*2+2]);	// Hex 8 or 16
+}
+
+// pgm_read_word = read char pointer address from PROGMEM pos PRTTBLCR of the string array
+// strcpy_P = copy char[] from PRROGMEM at that address of PRROGMEM to buf
+// *.print = print that char to serial
 static void
 printPrgMem(int tbl, int pos){
 
@@ -129,74 +288,245 @@ printPrgMem(int tbl, int pos){
 
 }
 
-static void
-printTestResults(){
-	// use all local, do not change global
-	sLoRaResutls_t * trn = &testResults[0]; // Init results pointer
-
-	// for printing
-	char buf[128];
-
-	printPrgMem(PRTSTTTBL, PRTSTTRESULTS);
-	for (int i = 1; i<= TST_MXRSLT; i++, trn++){
-		sprintf(buf, "%c;%02d;%02d;%07lu;%07lu;0x%02X;%lu;%02u;%02d;%03d;%03d",
-				prntGrp, prntTno, i, trn->timeTx, trn->timeRx,
-				trn->chnMsk, trn->txFrq, trn->txDR, trn->txPwr,
-				trn->rxRssi, trn->rxSnr);
-		debugSerial.println(buf);
-	}
-}
-
-uint8_t countSetBits(int n)
-{
-	uint8_t count = 0;
-    while (n) {
-        n &= (n - 1);
-        count++;
-    }
-    return count;
-}
-
-void readEEPromSettings () {
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-		confirmed = eeprom_read_byte(&ee_confirmed);
-		dataLenMin = eeprom_read_byte(&ee_dataLenMin);
-		dataLenMax = eeprom_read_byte(&ee_dataLenMax);
-		txPowerTst = eeprom_read_byte(&ee_txPowerTst);
-	}
-}
-
-void writeEEPromDefaults() { // for defaults
-	ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-		eeprom_update_byte(&ee_confirmed, 1);
-		eeprom_update_byte(&ee_dataLenMin, 1);
-		eeprom_update_byte(&ee_dataLenMax, 255);
-		eeprom_update_byte(&ee_txPowerTst, 4);
-	}
-}
-
 /*************** TEST MANAGEMENT FUNCTIONS*****************/
 
-static testParam_t ** tno = NULL;
-static testParam_t *** tgrp = NULL;
-
-static unsigned long startTs = 0; // loop timer
-
 // Enumeration for test status
-enum testRun { 	rError = -1,
+static enum { 	rError = -1,
 				rInit = 0,
+				rPrepare,
 				rStart,
 				rRun,
 				rStop,
-				rEvaluate,
+
+				rEvaluate = 15,
 				rReset,
-				rEnd = 10
-			};
 
-static enum testRun tstate = rInit;
+				rEnd = 20
+			} tstate = rEnd;	// test run status
+
+static enum {	qIdle = 0,
+				qRun,
+				qStop
+			} testReq = qIdle;	// test request status
+
 static int	retries; 			// un-conf send retries
-static int	pollcnt;			// un-conf poll retries
+static int	failed;				// some part failed
 
+/*
+ * runTest: test runner
+ *
+ * Arguments: - pointer to test structure of actual test
+ *
+ * Return:	  - test run enumeration status
+ */
+static void
+runTest(){
+
+	// reset at every call
+	int ret = 0;
+
+	LoRaMgmtMain();
+
+	switch(tstate){
+
+	case rInit:
+		// reset at every test
+		retries = 0;
+
+		// reset status on next test
+		memset(testResults,0, sizeof(testResults));
+
+		if (LoRaMgmtSetup(&newConf, &testResults[0]))
+		{
+			tstate = rError;
+			break;
+		}
+		tstate = rPrepare;
+		printPrgMem(PRTSTTTBL, PRTSTTSTART);
+		// fall-through
+		// @suppress("No break at end of case")
+
+	case rPrepare:
+		if (testReq >= qStop ){
+			tstate = rStop;
+			break;
+		}
+
+		if (newConf.prep &&
+			(ret = newConf.prep()) == 0)
+				break;
+		else if (ret < 0){
+			tstate = rError;
+			break;
+		}
+
+		tstate = rStart;
+		// fall-through
+		// @suppress("No break at end of case")
+
+	case rStart:
+
+		if (testReq >= qStop ){
+			tstate = rStop;
+			break;
+		}
+
+		if (newConf.start){
+			if ((ret = newConf.start()) < 0){
+				failed = 1;
+				tstate = rStop;
+				printPrgMem(PRTSTTTBL, PRTSTTERREXEC);
+				printPrgMem(PRTSTTTBL, PRTSTTSTOP);
+				break;
+			}
+			else if (ret == 0)	// Busy!
+				break;
+			else if (ret == 2) {
+				tstate = rStop;
+				printPrgMem(PRTSTTTBL, PRTSTTSTOP);
+				break;
+			}
+		}
+		printPrgMem(PRTSTTTBL, PRTSTTSTART);
+		tstate = rRun;
+		failed = 0;
+		// fall-through
+		// @suppress("No break at end of case")
+
+	case rRun:
+
+		if (testReq >= qStop ){
+			tstate = rStop;
+			break;
+		}
+
+		if (!newConf.run)
+			break;
+
+		if ((ret = newConf.run()) < 0){
+			failed = 1;
+			printPrgMem(PRTSTTTBL, PRTSTTPOLLERR);
+		}
+		else if (ret == 0)
+			break;
+		else if (ret == 2){
+			tstate = rEvaluate;
+			break;
+		}
+
+		tstate = rStop;
+		printPrgMem(PRTSTTTBL, PRTSTTSTOP);
+		retries++;
+		// fall-through
+		// @suppress("No break at end of case")
+
+	case rStop:
+
+		// unsuccessful and retries left?
+		if (failed && (newConf.repeatSend > retries) && testReq < qStop){
+			if (LoRaMgmtUpdt()){
+				tstate = rStart;
+				printPrgMem(PRTSTTTBL, PRTSTTRETRY);
+			}
+			break;
+		}
+
+		tstate = rEvaluate;
+		printPrgMem(PRTSTTTBL, PRTSTTEVALUATE);
+		// fall-through
+		// @suppress("No break at end of case")
+
+	case rEvaluate:
+		{
+			sLoRaResutls_t * trn = NULL;
+			ret = LoRaMgmtGetResults(&trn);
+
+			if (debug) {
+				printPrgMem(PRTTBLTBL,PRTTBLCR);
+				debugSerial.print(trn->lastCR);
+				printPrgMem(PRTTBLTBL,PRTTBLDR);
+				debugSerial.print(trn->txDR);
+				printPrgMem(PRTTBLTBL,PRTTBLCHMSK);
+				debugSerial.println(trn->chnMsk);
+				printPrgMem(PRTTBLTBL,PRTTBLFRQ);
+				debugSerial.print(trn->txFrq);
+				printPrgMem(PRTTBLTBL,PRTTBLPWR);
+				debugSerial.print(trn->txPwr);
+				printPrgMem(PRTTBLTBL,PRTTBLRSSI);
+				debugSerial.print(trn->rxRssi);
+				printPrgMem(PRTTBLTBL,PRTTBLSNR);
+				debugSerial.println(trn->rxSnr);
+
+				printPrgMem(PRTTBLTBL,PRTTBLTTX);
+				printScaled(trn->timeTx);
+				printPrgMem(PRTTBLTBL,PRTTBLTMS);
+				printPrgMem(PRTTBLTBL,PRTTBLTRX);
+				printScaled(trn->timeRx);
+				printPrgMem(PRTTBLTBL,PRTTBLTMS);
+				printPrgMem(PRTTBLTBL,PRTTBLTTL);
+				printScaled(trn->timeToRx);
+				printPrgMem(PRTTBLTBL,PRTTBLTMS);
+				debugSerial.println();
+			}
+
+			// End of tests?
+			if ((trn >= &testResults[TST_MXRSLT-1]) || (testReq >= qStop)){
+				printPrgMem(PRTSTTTBL, PRTSTTEND);
+				printTestResults((trn-&testResults[0])+1); // Typed difference !
+				tstate = rEnd;
+				testReq = qStop;
+				break;
+			}
+		}
+
+		tstate = rReset;
+		printPrgMem(PRTSTTTBL, PRTSTTRESET);
+
+		// fall-through
+		// @suppress("No break at end of case")
+
+	case rReset:
+		if ((ret = LoRaMgmtRcnf()) == 1){
+			printPrgMem(PRTSTTTBL, PRTSTTRESTART);
+			retries = 0;
+			tstate = rStart;
+			break;
+		}
+		else if (ret == 0)
+			break;
+
+		// fall-through
+		// @suppress("No break at end of case")
+
+	case rError:
+		printPrgMem(PRTSTTTBL, PRTSTTERREXEC);
+		tstate = rEnd;
+		testReq = qStop;
+		break;
+
+	default:
+	case rEnd:
+		if (testReq == qRun){
+			// restart
+			tstate = rInit;
+		}
+		else if (testReq != qIdle){
+			// print stop
+			printPrgMem(PRTSTTTBL, PRTSTTDONE);
+			printPrgMem(PRTSTTTBL, PRTSTTSELECT);
+			testReq = qIdle;
+		}
+	}
+
+}
+
+/*
+ * readInput(): read input string
+ *
+ * Arguments:	-
+ *
+ * Return:		-
+ */
 void readInput() {
 
 	signed char A;
@@ -277,189 +607,6 @@ void readInput() {
 		}
 	}
 
-}
-
-/*
- * runTest: test runner
- *
- * Arguments: - pointer to test structure of actual test
- *
- * Return:	  - test run enumeration status
- */
-static enum testRun
-runTest(testParam_t * testNow){
-
-	int failed = 0;
-
-	if (!testNow){
-		printPrgMem(PRTSTTTBL, PRTSTTWRNCONF);
-		return rError;
-	}
-
-
-	int ret = 0;
-	switch(tstate){
-
-	case rInit:
-
-		// reset status on next test
-		memset(testResults,0, sizeof(testResults));
-		trn = &testResults[0];	// Init results pointer
-		retries=0;
-		pollcnt=0;
-
-		// Set global test parameters
-		LoRaSetGblParam(confirmed, dataLen);
-
-		// Setup channels as configured
-		actChan = countSetBits(testNow->chnEnabled);
-
-		if ((LoRaSetChannels(testNow->chnEnabled, testNow->drMin, testNow->drMax)) // set channels
-			|| (LoRaMgmtTxPwr(testNow->txPowerIdx))) { // set power index;
-			tstate = rError;
-			break; // TODO: error
-		}
-
-		tstate = rStart;
-		printPrgMem(PRTSTTTBL, PRTSTTSTART);
-		// fall-through
-		// @suppress("No break at end of case")
-
-	case rStart:
-
-		if ((ret = LoRaMgmtSend()) && ret != 1){
-			if (-9 == ret) // no chn -> pause for free-delay / active channels
-				delay(RESFREEDEL/actChan);
-			else
-				delay(100); // simple retry timer 100ms, e.g. busy
-			break;
-		}
-
-		// sent but no response from confirmed, or not confirmed msg, goto poll
-		if (ret == 1 || !confirmed){
-			tstate = rRun;
-			printPrgMem(PRTSTTTBL, PRTSTTPOLL);
-
-		}
-		else {
-			tstate = rStop;
-			printPrgMem(PRTSTTTBL, PRTSTTSTOP);
-			break;
-		}
-		// fall-through
-		// @suppress("No break at end of case")
-
-	case rRun:
-
-		if ((ret = LoRaMgmtPoll()) && (confirmed || (pollcnt < UNCF_POLL))){
-			if (-9 == ret) // no chn -> pause for free-delay / active channels
-				delay(RESFREEDEL/actChan);
-			else if (1 == ret)
-				pollcnt++;
-			else
-				delay(100); // simple retry timer 100ms, e.g. busy
-			break;
-		}
-
-		// Unconf polling ended and still no response, or confirmed and error message (end of retries)
-		if ((failed = (0 != ret)))
-			printPrgMem(PRTSTTTBL, PRTSTTPOLLERR);
-
-		tstate = rStop;
-		printPrgMem(PRTSTTTBL, PRTSTTSTOP);
-		// fall-through
-		// @suppress("No break at end of case")
-
-	case rStop:
-
-		retries++;
-		pollcnt=0;
-
-		// unsuccessful and retries left?
-		if (failed && (TST_RETRY > retries)){
-			tstate = rStart;
-			printPrgMem(PRTSTTTBL, PRTSTTRETRY);
-			delay(RESFREEDEL/actChan); // delay for modem resource free
-			(void)LoRaMgmtUpdt();
-			break;
-		}
-
-		tstate = rEvaluate;
-		printPrgMem(PRTSTTTBL, PRTSTTEVALUATE);
-		// fall-through
-		// @suppress("No break at end of case")
-
-	case rEvaluate:
-		printPrgMem(PRTSTTTBL, PRTSTTADDMEAS);
-
-		(void)LoRaMgmtGetResults(trn); // TODO: implement and use return value
-		// pgm_read_word = read char pointer address from PROGMEM pos PRTTBLCR of the string array
-		// strcpy_P = copy char[] from PRROGMEM at that address of PRROGMEM to buf
-		// *.print = print that char to serial
-		printPrgMem(PRTTBLTBL,PRTTBLCR);
-		debugSerial.print(trn->lastCR);
-		printPrgMem(PRTTBLTBL,PRTTBLDR);
-		debugSerial.print(trn->txDR);
-		printPrgMem(PRTTBLTBL,PRTTBLCHMSK);
-		debugSerial.println(trn->chnMsk);
-		printPrgMem(PRTTBLTBL,PRTTBLFRQ);
-		debugSerial.print(trn->txFrq);
-		printPrgMem(PRTTBLTBL,PRTTBLPWR);
-		debugSerial.print(trn->txPwr);
-		printPrgMem(PRTTBLTBL,PRTTBLRSSI);
-		debugSerial.print(trn->rxRssi);
-		printPrgMem(PRTTBLTBL,PRTTBLSNR);
-		debugSerial.println(trn->rxSnr);
-
-		printPrgMem(PRTTBLTBL,PRTTBLTTX);
-		printScaled(trn->timeTx);
-		printPrgMem(PRTTBLTBL,PRTTBLTMS);
-		printPrgMem(PRTTBLTBL,PRTTBLTRX);
-		printScaled(trn->timeRx);
-		printPrgMem(PRTTBLTBL,PRTTBLTMS);
-		printPrgMem(PRTTBLTBL,PRTTBLTTL);
-		printScaled(trn->timeToRx);
-		printPrgMem(PRTTBLTBL,PRTTBLTMS);
-		debugSerial.println();
-
-		// End of tests?
-		if (trn >= &testResults[TST_MXRSLT-1]){
-			printPrgMem(PRTSTTTBL, PRTSTTEND);
-			printTestResults();
-			tstate = rEnd;
-			break;
-		}
-
-		trn++;
-		tstate = rReset;
-		printPrgMem(PRTSTTTBL, PRTSTTRESET);
-
-		// fall-through
-		// @suppress("No break at end of case")
-
-	case rReset:
-//		delay(RESFREEDEL/actChan); // delay for modem resource free
-		retries=0;
-		pollcnt=0;
-		printPrgMem(PRTSTTTBL, PRTSTTRESTART);
-		tstate = rStart;
-		break;
-
-	default:
-	case rEnd:
-		if (!testend){
-			printPrgMem(PRTSTTTBL, PRTSTTDONE);
-			printPrgMem(PRTSTTTBL, PRTSTTSELECT);
-		}
-		testend = 1;
-	}
-
-	if (-1 == ret && (rStart != tstate) && (rRun != tstate) ){
-		printPrgMem(PRTSTTTBL, PRTSTTERREXEC);
-		tstate = rEnd;
-	}
-
-	return tstate;
 }
 
 /*************** SYSTEM SETUP AND LOOP *****************/
