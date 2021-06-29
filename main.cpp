@@ -530,81 +530,252 @@ runTest(){
 void readInput() {
 
 	signed char A;
+	int intp = 0;
 	while (debugSerial.available()){
 		A = debugSerial.read();
+		intp = 0;
+		// work always
 		switch (A){
-		// read parameter, they come together
 
-		case 'G':
-		case 'g': // read test group
-			A = debugSerial.read();
-			A = A - 65;
-			if (A < 5 && A >= 0)
-				testGrp = A;
+		case '\n':
+		case '\r':
 			break;
 
-		case 'T':
-		case 't': // read test number to go
-			A = debugSerial.read();
-			A = A - 48;
-			if (A < 10 && A >= 0)
-				testNo = A;
+		case 'm': // read test mode
+			newConf.mode = (uint8_t)readSerialD();
+			if (newConf.mode > 4){
+				debugSerial.println("Invalid mode [0-4]");
+				newConf.mode = 0; // set to default
+			}
+			resetKeyBuffer();
+			newConf.confMsk &= ~CM_RJN;
+			switch (newConf.mode)
+			{
+			default:
+			case 0 : // off- mute
+				newConf.prep = NULL;
+				newConf.start = NULL;
+				newConf.run = NULL;
+				break;
+			case 1 : // dumb LoRa
+				newConf.prep = NULL;
+				newConf.start = NULL;
+				newConf.run = &LoRaMgmtSendDumb;
+				newConf.frequency = 8683;
+				newConf.bandWidth = 250;
+				newConf.codeRate = 8;
+				newConf.spreadFactor = 12;
+				break;
+			case 2 :  // LoRaWan
+				newConf.prep = NULL;
+				newConf.start = &LoRaMgmtSend;
+				newConf.run = &LoRaMgmtPoll;
+				break;
+			case 3 : // LoRaRemote
+				newConf.prep = &LoRaMgmtRemote;
+				newConf.start = &LoRaMgmtSend;
+				newConf.run = &LoRaMgmtPoll;
+				break;
+			case 4 : // LoRaWan force Join
+				newConf.prep = NULL;
+				newConf.start = NULL;
+				newConf.run = &LoRaMgmtJoin;
+				newConf.confMsk |= CM_RJN;
+				break;
+			}
+
 			break;
 
-		case 'U':
-		case 'u': // set to unconfirmed
-			confirmed = false;
-			ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-				eeprom_update_byte(&ee_confirmed, confirmed);
+		case 'p': // read Tx power index
+			newConf.txPowerTst = (uint8_t)readSerialD();
+			if (newConf.txPowerTst > 5 ){ //TODO: this is limiting to EU868
+				debugSerial.println("Invalid power level [0-5]");
+				newConf.txPowerTst = 0; // set to default
 			}
 			break;
 
-		case 'C':
-		case 'c': // set to confirmed
-			confirmed = true;
-			ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-				eeprom_update_byte(&ee_confirmed, confirmed);
+		case 'l': // read data length
+			newConf.dataLen = (uint8_t)readSerialD();
+			if ((newConf.dataLen > 242 && newConf.mode >=2) // Maximum LoRaWan application payload
+					|| newConf.dataLen == 0 ){
+				debugSerial.println("Invalid data length [1-250]");
+				newConf.dataLen = 1; // set to default
 			}
 			break;
 
-		case 'P':
-		case 'p': // read tx power index
-			A = debugSerial.read();
-			A = A - 48;
-			if (A < 10 && A >= 0){
-				txPowerTst = A;
-				ATOMIC_BLOCK(ATOMIC_RESTORESTATE){
-					eeprom_update_byte(&ee_txPowerTst, txPowerTst);
-				}
+		case 'r': // read repeat count for LoRaWan packets
+			newConf.repeatSend = (uint8_t)readSerialD();
+			if (newConf.repeatSend == 0 || newConf.repeatSend > TST_MXRSLT){
+				debugSerial.print("Invalid repeat count [1-");
+				debugSerial.print(TST_MXRSLT);
+				debugSerial.println("]");
+				newConf.repeatSend = 5; // set to default
+			}
+
+			break;
+		case 'R': // set to run
+			if (newConf.mode == 0) // do nothing
+				break;
+
+			if ((newConf.mode == 1 && newConf.frequency == 0) ||
+				(newConf.mode >= 2 && (!newConf.devAddr ||
+									   !newConf.appEui ||
+									   !newConf.appKey))){
+				debugSerial.println("Incomplete configuration!");
+				break;
+			}
+
+			testReq = qRun;
+			break;
+
+		case 'S': // stop test
+			testReq = max(qStop, testReq);
+			debugSerial.println("Test stop!");
+			break;
+
+		case 'T': // Print type of micro-controller
+			debugSerial.println(MICROVER);
+			break;
+
+		case 'I': // Print type of micro-controller
+			{
+				const char * EUI = LoRaMgmtGetEUI();
+				if (EUI)
+					debugSerial.println(EUI);
+				else
+					debugSerial.println("Could not retrieve EUI");
 			}
 			break;
 
-		case 'R':
-		case 'r': // set to run
-			testend = false;
-			prntGrp='A'+testGrp;
-			prntTno=testNo;
-			// run through tests to pick the right test
-			while (testGrp && *tgrp){
-				tgrp++; // next test group
-				testGrp--;
-			}
-			tno = *tgrp;
-			while (testNo && *tno){
-				tgrp++; // next test group
-				testNo--;
-			}
-			startTs = millis();
-			tstate = rInit;
+		case 'n': // disable debug print
+			debug = 0;
 			break;
-
-		case 'd':
-		case 'D': // reset to defaults
-			writeEEPromDefaults();
-			readEEPromSettings();
-			break;
-		// TODO: add data length menu
+		default:
+			intp = 1;
 		}
+		if (intp && newConf.mode == 1)
+			switch (A){
+			case 'f': //TODO: this is limiting to EU868
+				newConf.frequency = (long)readSerialD(); // TODO: 10 vs 100kHz
+				if (newConf.frequency < 8630 || newConf.frequency > 8700 ){
+					debugSerial.println("Invalid frequency [8630-8700] * 100 kHz");
+					newConf.frequency = 8683; // set to default
+				}
+				break;
+
+			case 'b': // read bandwidth
+				newConf.bandWidth = (uint8_t)readSerialD();
+				if (!(newConf.bandWidth == 250 ||
+						newConf.bandWidth == 125 ||
+						newConf.bandWidth == 62 ||
+						newConf.bandWidth == 41 ||
+						newConf.bandWidth == 31 ||
+						newConf.bandWidth == 20 ||
+						newConf.bandWidth == 15 ||
+						newConf.bandWidth == 10 )){
+					debugSerial.println("Invalid bandwidth [ 250 | 125 | 62 | 41 | 31 | 20 | 15 | 10 ]");
+					newConf.bandWidth = 250; // set to default
+				}
+				break;
+
+			case 'c': // read code rate
+				newConf.codeRate = (uint8_t)readSerialD();
+				if (newConf.codeRate < 5 || newConf.codeRate > 8){
+					debugSerial.println("Invalid code rate 4/[5-8]");
+					newConf.codeRate = 8; // set to default
+				}
+				break;
+
+			case 's': // read spread factor
+				newConf.spreadFactor = (uint8_t)readSerialD();
+				if (newConf.spreadFactor < 7 || newConf.spreadFactor > 12){
+					debugSerial.println("Invalid spread factor [7-12]");
+					newConf.spreadFactor = 12; // set to default
+				}
+				break;
+			default:
+				debugSerial.print("Unknown command ");
+				debugSerial.println(A);
+			}
+
+		if (intp && newConf.mode >= 2)
+			switch (A){
+
+			case 'c': // set to confirmed
+				newConf.confMsk &= ~CM_UCNF;
+				break;
+			case 'u': // set to unconfirmed
+				newConf.confMsk |= CM_UCNF;
+				break;
+
+			case 'o': // set to otaa
+				newConf.confMsk |= CM_OTAA;
+				resetKeyBuffer();
+				break;
+			case 'a': // set to ABP
+				newConf.confMsk &= ~CM_OTAA;
+				resetKeyBuffer();
+				break;
+
+			case 'N': // Network session key for ABP
+				readSerialS(newConf.nwkSKey, KEYSIZE);
+				if (strlen(newConf.nwkSKey) < KEYSIZE){
+					debugSerial.println("Invalid network session key");
+					newConf.nwkSKey[0] = '\0';
+				}
+				break;
+
+			case 'A': // Application session key for ABP
+				readSerialS(newConf.appSKey, KEYSIZE);
+				if (strlen(newConf.appSKey) < KEYSIZE){
+					debugSerial.println("Invalid application session key");
+					newConf.appSKey[0] = '\0';
+				}
+				break;
+
+			case 'D': // Device address for ABP
+				readSerialS(newConf.devAddr, KEYSIZE/4);
+				if (strlen(newConf.devAddr) < KEYSIZE/4){
+					debugSerial.println("Invalid device address key");
+					newConf.devAddr[0] = '\0';
+				}
+				break;
+
+			case 'K': // Application Key for OTAA
+				readSerialS(newConf.appKey, KEYSIZE);
+				if (strlen(newConf.appKey) < KEYSIZE){
+					debugSerial.println("Invalid application key");
+					newConf.appKey[0] = '\0';
+				}
+				break;
+
+			case 'E': // EUI address for OTAA
+				readSerialS(newConf.appEui, KEYSIZE/2);
+				if (strlen(newConf.appEui) < KEYSIZE/2){
+					debugSerial.println("Invalid EUI address");
+					newConf.appEui[0] = '\0';
+				}
+				break;
+
+			case 'C':
+				newConf.chnMsk = readSerialH();
+				if (newConf.chnMsk < 0x01 || newConf.chnMsk > 0xFF ){ //TODO: this is limiting to EU868
+					debugSerial.println("Invalid channel mask [0x01-0xFFh]");
+					newConf.chnMsk = 0xFF; // set to default
+				}
+				break;
+
+			case 'd': // read data rate
+				newConf.dataRate = (uint8_t)readSerialD();
+				if (newConf.dataRate > 5){ // we exclude 6 and 7 for now
+					debugSerial.println("Invalid data rate [0-5]");
+					newConf.dataRate = 5; // set to default
+				}
+				break;
+			default:
+				debugSerial.print("Unknown command ");
+				debugSerial.println(A);
+			}
 	}
 
 }
@@ -617,47 +788,46 @@ void initPorts(){
 	PORTC &= ~(0x01 << LEDBUILDIN);
 }
 
+/*
+ *	Setup(): system start
+ *
+ *	The setup function is called once at startup of the sketch
+ */
 void setup()
 {
 	// Initialize Serial ports 0
-	if (debug) // don't even try if not set
-	{
-		// setup serial for debug, disable if no connection after 10 seconds
-		debugSerial.begin(9600);
-		int waitSE = 999;	// wait for 10 seconds, -10 ms for computation
-		while (!debugSerial && waitSE) {
-		  //delay(10);// -- Included in Serial_::operator()
-		  waitSE--;
-		}
-		debug = ((waitSE));	// reset debug flag if time is elapsed
+	// setup serial for debug, disable if no connection after 10 seconds
+	debugSerial.begin(9600);
+	int waitSE = 999;	// wait for 10 seconds, -10 ms for computation
+	while (!debugSerial && waitSE) {
+	  //delay(10);// -- Included in Serial_::operator()
+	  waitSE--;
 	}
+	debug = ((waitSE));	// reset debug flag if time is elapsed
 
 	// Blink once Led buildin to show program start
 	PORTC |= (0x01 << LEDBUILDIN);
 	delay (500);
 	PORTC &= ~(0x01 << LEDBUILDIN);
 
-	LoRaMgmtSetup();
-
-	tgrp = &testConfig[0]; 	// assign pointer to pointer to TestgroupA
-	tno = *tgrp; 			// assign pointer to pointer to test 1
-	trn = &testResults[0];	// Init results pointer
-
-	startTs = millis();		// snapshot starting time
-
 	printPrgMem(PRTSTTTBL, PRTSTTSELECT);
+	debugSerial.flush();
 }
 
+/*
+ *  loop(): main call
+ *
+ *  The loop function is called in an endless loop
+ */
 void loop()
 {
-	if (testend)
+	if (testReq == qIdle)
 		readInput();
 	else{
-		if (*tno)
-			runTest(*tno);
-		else
-			printPrgMem(PRTSTTTBL, PRTSTTERRTEXT);
+		runTest();
+		// received something?
+		if (debugSerial.peek())
+			//stop?
+			readInput();
 	}
-	// received something
-	// debugSerial.read();
 }
