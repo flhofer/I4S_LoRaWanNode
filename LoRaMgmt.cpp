@@ -9,32 +9,47 @@
 #include "main.h"				// Global includes/definitions, i.e. address, key, debug mode
 #include "timer.h"				// Custom Timer, stop-watch routines
 #include "TheThingsNetwork.h"	// LoRaWan library by TTN
+
 #include <stdlib.h>				// AVR standard library
 
 #define freqPlan TTN_FP_EU868
-
-// DevAddr, NwkSKey, AppSKey and the frequency plan
-static const char *devAddr = LORA_DEVADDR;
-static const char *nwkSKey = LORA_NWSKEY;
-static const char *appSKey = LORA_APSKEY;
+#define POLL_NO		5			// How many times to poll
+#define MAXLORALEN	242			// maximum payload length 0-51 for DR0-2, 115 for DR3, 242 otherwise
+#define LORACHNMAX	16
+#define LORABUSY	-4			// error code for busy channel
+#define RESFREEDEL	40000		// ~resource freeing delay ETSI requirement air-time reduction
+#define MACHDRFTR	13			// Length in bytes of MACHDR + FHDR + FPORT + MIC
 
 // Modem constructor
 static TheThingsNetwork ttn(loraSerial, debugSerial,
 					freqPlan, TTN_DEFAULT_SF, TTN_DEFAULT_FSB);
 
-static bool conf = false;			// use confirmed messages
-static int dataLen = 1; 			// TX data length for tests
+static uint8_t actBands = 2;	// active channels
+static int	pollcnt;			// un-conf poll retries
+
 static unsigned long rnd_contex;	// pseudo-random generator context (for reentrant)
-static unsigned long rxWindow1 = 1000; // pause duration in ms between tx and rx TODO: get parameter
-static unsigned long rxWindow2 = 2000; // pause duration in ms between tx and rx2 TODO: get parameter
+static byte genbuf[MAXLORALEN];		// buffer for generated message
+
+static uint32_t startSleepTS;	// relative MC time of Sleep begin
+static uint32_t timerMillisTS;	// relative MC time for timers
+static uint32_t startTestTS;	// relative MC time for test start
+static uint32_t sleepMillis;	// Time to remain in sleep
+static uint32_t rxWindow1 = 1000; // pause duration in ms between tx and rx TODO: get parameter
+static uint32_t rxWindow2 = 1000; // pause duration in ms between rx1 and rx2 TODO: get parameter
+
+static const sLoRaConfiguration_t * conf;	// Pointer to configuration entry
+static sLoRaResutls_t * trn;				// Pointer to actual entry
+static enum {	iIdle,
+				iSend,
+				iPoll,
+				iRetry,
+				iBusy,
+				iChnWait,
+				iSleep,
+			} internalState;
+
 static unsigned long wdt;			// watch-dog timeout timer value, 15000 default
 static unsigned long pollTstamp;	// last poll time-stamp
-
-static uint32_t timeTx;				// Last TX
-static uint32_t timeRx;				// Last RX
-static uint32_t timeToRx;			// Last Total time
-
-static byte genbuf[MAXLORALEN];			// buffer for generated message
 
 /********************** HELPERS ************************/
 
@@ -48,14 +63,15 @@ static byte genbuf[MAXLORALEN];			// buffer for generated message
 static byte *
 generatePayload(byte *payload){
 
-	// TODO: unprotected memory
-	for (int i=0; i < dataLen; i++, payload++)
+	for (int i=0; i < conf->dataLen; i++, payload++)
 		*payload=(byte)(random_r(&rnd_contex) % 255);
 
 	return payload;
 }
 
 /*************** CALLBACK FUNCTIONS ********************/
+
+static void onMessage(const uint8_t *payload, size_t size, port_t port) __attribute__((unused));
 
 /*
  * onMessage: Callback function for LoraRx
@@ -64,7 +80,8 @@ generatePayload(byte *payload){
  * 			  - LoRaWan Port
  * Return:	  -
  */
-static void onMessage(const uint8_t *payload, size_t size, port_t port){
+static void
+onMessage(const uint8_t *payload, size_t size, port_t port){
 	if (!debug)
 		return;
 
@@ -106,11 +123,12 @@ static void onMessage(const uint8_t *payload, size_t size, port_t port){
  *
  * Return:	  -
  */
-static void onBeforeTx(){
-	startTimer();
-	timeTx = 0;
-	timeRx = 0;
-	timeToRx = 0;
+static void
+onBeforeTx(){
+	timerMillisTS = millis();
+	trn->timeTx = 0;
+	trn->timeRx = 0;
+	trn->timeToRx = 0;
 }
 
 /*
@@ -119,8 +137,9 @@ static void onBeforeTx(){
  *
  * Return:	  -
  */
-static void onAfterTx(){
-	timeTx = getTimer();
+static void
+onAfterTx(){
+	trn->timeTx = getTimer();
 }
 
 /*
@@ -130,13 +149,213 @@ static void onAfterTx(){
  * Return:	  -
  */
 static void onAfterRx(){
-	timeToRx = getTimer();
-	timeRx = timeToRx - timeTx - rxWindow1;
-	if (timeRx > 1000)
-		timeRx -= rxWindow2;
+	trn->timeToRx = getTimer();
+	trn->timeRx = trn->timeToRx - trn->timeTx - rxWindow1;
+	if (trn->timeRx > rxWindow2)
+		trn->timeRx -= rxWindow2;
 }
 
-/*************** TEST SEND FUNCTIONS ********************/
+/*
+ * computeAirTime:
+ *
+ * Arguments: - payload length
+ * 			  - data rate (7-12)
+ *
+ * Return:	  - expected airTime in ms
+ */
+static uint32_t
+computeAirTime(uint8_t dataLen, uint8_t dataRate){
+
+	static const uint32_t dataRates[] =  {250, 440, 980, 1760, 3125, 5470};
+
+	dataLen+=MACHDRFTR;
+
+	return dataLen * 1000 / dataRates[Max(12-dataRate, 0)];
+}
+
+/*
+ * setTxPwr: set power index on modem
+ *
+ * Arguments: - used mode, 0-..4
+ * 			  - txPwr 0-5..
+ *
+ * Return:	  - return 0 if OK, -1 if error
+ */
+static int
+setTxPwr(uint8_t mode, uint8_t txPwr){
+
+	return ttn.setPowerIndex(txPwr)? 0 : -1;
+}
+
+/*
+ * getChannels:
+ *
+ * Arguments: - pointer to channel enable bit mask to fill, 0 off, 1 on
+ *
+ * Return:	  - return 0 if OK, -1 if error
+ */
+static int
+getChannels(uint16_t * chnMsk){
+
+  *chnMsk = 0;
+
+  for (int i=0; i<LORACHNMAX; i++)
+	  *chnMsk |= (uint16_t)ttn.getChannelStatus((uint8_t)i) << i;
+
+  return (0 == *chnMsk) * -1; // error if mask is empty!
+}
+
+/*
+ * setChannelsCnf:
+ *
+ * Arguments: - channel enable bit mask, 0 off, 1 on
+ *
+ * Return:	  - return 0 if OK, -1 if error
+ */
+static int
+setChannelsCnf(uint8_t drMin, uint8_t drMax){
+
+  bool retVal = true;
+  long frq = 0;
+
+  for (int i=0; i<LORACHNMAX; i++){
+	  // default TTN only channels 1-8 are set
+	  if (i >= 8)
+		  frq = 864100000 + 200000 * (i - 8);
+
+	  retVal &= ttn.setChannel((uint8_t)i, frq, drMin, drMax);
+	  retVal &= ttn.setChannelDCycle((uint8_t)i, 100.0);
+  }
+
+  return !retVal * -1;
+}
+
+/*
+ * setChannels: set the Channel-Mask and the wanted data rate
+ *
+ * Arguments: - pointer to channel enable bit mask to use, 0 off, 1 on
+ * 			  - dataRate for test start, (disables ADR)
+ *
+ * Return:	  - return 0 if OK, -1 if error
+ */
+static int
+setChannels(uint16_t chnMsk, uint8_t dataRate) {
+
+	bool retVal = true;
+
+	for (int i=0; i<LORACHNMAX; i++, chnMsk >>=1){
+	  retVal &= ttn.setChannelStatus((uint8_t)i, (bool)chnMsk & 0x01);
+	}
+
+	if (dataRate == 255){
+		retVal &= ttn.setDR(5);
+		retVal &= ttn.reset(true);
+	}
+	else {
+		retVal &= ttn.reset(false);
+		retVal &= ttn.setDR(dataRate);
+	}
+	retVal &=  !setChannelsCnf(0 , 5);
+
+	return !retVal * -1;
+}
+
+/*
+ * loRaJoin: Join a LoRaWan network
+ *
+ * Arguments: - pointer to test configuration to use
+ *
+ * Return:	  returns 0 if successful, else -1
+ */
+static int
+loRaJoin(const sLoRaConfiguration_t * newConf){ // TODO: this resets ADR -> set here !
+	if (newConf->confMsk & CM_OTAA)
+		return !ttn.join(newConf->appEui, newConf->appKey) * -1;
+	else
+		return !ttn.personalize(newConf->devAddr, newConf->nwkSKey, newConf->appSKey) * -1;
+}
+
+/*
+ * setupLoRaWan: setup LoRaWan communication with modem
+ *
+ * Arguments: - pointer to test configuration to use
+ *
+ * Return:	  returns 0 if successful, else -1
+ */
+static int
+setupLoRaWan(const sLoRaConfiguration_t * newConf){
+
+	if (!modem.begin(freqPlan)) {
+		debugSerial.println("Failed to start module");
+		return -1;
+	};
+
+	int ret = 0;
+	ret |= !modem.dutyCycle(newConf->confMsk & CM_DTYCL); // switch off the duty cycle
+	ret |= !modem.setADR(false);	// disable ADR by default
+
+	modem.publicNetwork(!(newConf->confMsk & CM_NPBLK));
+
+	if (!(newConf->confMsk & CM_RJN) && loRaJoin(newConf))
+	{
+		// Something went wrong; are you indoor? Move near a window and retry
+		debugSerial.println("Network join failed");
+		return -1;
+	}
+
+	// Set poll interval to 1 sec.
+	modem.minPollInterval(1); // for testing only
+
+	if (!(newConf->confMsk & CM_OTAA)){
+		// set to LorIoT standard RX, DR
+		ret |= !modem.setRX2Freq(869525000);
+		ret |= !modem.setRX2DR(0);
+	}
+
+	return ret *-1;
+}
+
+/*
+ * setupDumb: setup LoRa communication with modem
+ *
+ * Arguments: - pointer to test configuration to use
+ *
+ * Return:	  - return 0 if OK, -1 if error
+ */
+static int
+setupDumb(const sLoRaConfiguration_t * newConf){
+
+	modem.dumb();
+
+	// Configure LoRa module to transmit and receive at 915MHz (915*10^6)
+	// Replace 915E6 with the frequency you need (eg. 433E6 for 433MHz)
+	if (!LoRa.begin((long)newConf->frequency * 100000)) {
+		debugSerial.println("Starting LoRa failed!");
+		return -1;
+	}
+
+	LoRa.setSpreadingFactor(newConf->spreadFactor);
+	LoRa.setSignalBandwidth(newConf->bandWidth*1000);
+	LoRa.setCodingRate4(newConf->codeRate);
+
+	return 0;
+}
+
+/*
+ * setupPacket: setup LoRa packet parameters communication with modem
+ *
+ * Arguments: - pointer to test configuration to use
+ *
+ * Return:	  - return 0 if OK, -1 if error
+ */
+static int
+setupPacket(const sLoRaConfiguration_t * newConf){
+	int ret = 0;
+	ret |= !modem.setTxConfirmed(!(newConf->confMsk & CM_UCNF));
+	ret |= !modem.setPort(2 + ((newConf->confMsk & CM_UCNF) >> 3));
+	return ret * -1;
+
+}
 
 static int
 evaluateResponse(int ret){
@@ -167,6 +386,8 @@ evaluateResponse(int ret){
 	  return (int)ttn.getLastError(); // transform error code to int -> forward to main
 	}
 }
+
+/*************** TEST SEND FUNCTIONS ********************/
 
 /*
  * LoRaMgmtSendConf: send a confirmed message. If no response arrives
@@ -210,46 +431,6 @@ int LoRaMgmtPoll(){
 }
 
 /*************** MANAGEMENT FUNCTIONS ********************/
-
-/*
- * LoRaGetChannels:
- *
- * Arguments: - pointer to channel enable bit mask to fill, 0 off, 1 on
- *
- * Return:	  - return 0 if OK, -1 if error
- */
-static int
-LoRaGetChannels(uint16_t * chnMsk){
-
-  *chnMsk = 0;
-
-  for (int i=0; i<LORACHNMAX; i++)
-	  *chnMsk |= (uint16_t)ttn.getChannelStatus((uint8_t)i) << i;
-
-  return (0 == *chnMsk) * -1; // error if mask is empty!
-}
-
-/*
- * LoRaMgmtGetResults: getter for last experiment results
- *
- * Arguments: - pointer to Structure for the result data
- *
- * Return:	  - 0 if ok, <0 error
- */
-int
-LoRaMgmtGetResults(sLoRaResutls_t * res){
-	res->timeTx = timeTx;
-	res->timeRx = timeRx;
-	res->timeToRx = timeToRx;
-	res->txFrq = ttn.getFrequency();
-	(void)LoRaGetChannels(&res->chnMsk);
-	res->lastCR = ttn.getCR();
-	res->txDR = ttn.getDR();
-	res->txPwr = ttn.getPower();
-	res->rxRssi = ttn.getRSSI();
-	res->rxSnr = ttn.getSNR();
-	return 0;
-}
 
 /*
  * LoRaMgmtSetup: setup LoRaWan communication with modem
@@ -307,59 +488,6 @@ void LoRaSetGblParam(bool confirm, int datalen){
 }
 
 /*
- * LoRaSetChannels:
- *
- * Arguments: - channel enable bit mask, 0 off, 1 on
- *
- * Return:	  - return 0 if OK, -1 if error
- */
-int LoRaSetChannels(uint16_t chnMsk, uint8_t drMin, uint8_t drMax){
-
-  bool retVal = true;
-  long frq = 0;
-
-  for (int i=0; i<LORACHNMAX; i++, chnMsk >>=1){
-	  // default TTN only channels 1-8 are set
-	  if (i >= 8)
-		  frq = 864100000 + 200000 * (i - 8);
-
-	  retVal &= ttn.setChannel((uint8_t)i, frq, drMin, drMax);
-	  retVal &= ttn.setChannelDCycle((uint8_t)i, 100.0);
-	  retVal &= ttn.setChannelStatus((uint8_t)i, (bool)chnMsk & 0x01);
-  }
-
-  return !retVal * -1;
-}
-
-/*
- * LoRaMgmtUpdt: update LoRa message buffer
- *
- * Arguments: -
- *
- * Return:	  - return 0 if OK, -1 if error
- */
-int LoRaMgmtUpdt(){
-	// Prepare PayLoad of x bytes
-	(void)generatePayload(genbuf);
-
-	return 0;
-}
-
-/*
- * LoRaMgmtRcnf: reset modem and reconf
- *
- * Arguments: -
- *
- * Return:	  - return 0 if OK, -1 if error
- */
-int LoRaMgmtRcnf(){
-	if (conf)
-		ttn.reset(1); // reset with adr on
-
-	return 0;
-}
-
-/*
  * LoRaMgmtSetup: setup LoRaWan communication with modem
  *
  * Arguments: -
@@ -370,18 +498,209 @@ int LoRaMgmtSetupDumb(long FRQ){
 
 }
 
+
+//
+//if ((ret = LoRaMgmtSend()) && ret != 1){
+//	if (-9 == ret) // no chn -> pause for free-delay / active channels
+//		delay(RESFREEDEL/actChan);
+//	else
+//		delay(100); // simple retry timer 100ms, e.g. busy
+//	break;
+//}
+//
+//// sent but no response from confirmed, or not confirmed msg, goto poll
+//if (ret == 1 || !confirmed){
+//	tstate = rRun;
+//	printPrgMem(PRTSTTTBL, PRTSTTPOLL);
+//
+//}
+//else {
+//	tstate = rStop;
+//	printPrgMem(PRTSTTTBL, PRTSTTSTOP);
+//	break;
+//}
+//// fall-through
+//// @suppress("No break at end of case")
+
+//if ((ret = LoRaMgmtPoll()) && (confirmed || (pollcnt < UNCF_POLL))){
+//	if (-9 == ret) // no chn -> pause for free-delay / active channels
+//		delay(RESFREEDEL/actChan);
+//	else if (1 == ret)
+//		pollcnt++;
+//	else
+//		delay(100); // simple retry timer 100ms, e.g. busy
+//	break;
+//}
+//
+//// Unconf polling ended and still no response, or confirmed and error message (end of retries)
+//if ((failed = (0 != ret)))
+//	printPrgMem(PRTSTTTBL, PRTSTTPOLLERR);
+//
+//tstate = rStop;
+//printPrgMem(PRTSTTTBL, PRTSTTSTOP);
+//// fall-through
+//// @suppress("No break at end of case")
+
+//retries++;
+//pollcnt=0;
+//
+//// unsuccessful and retries left?
+//if (failed && (TST_RETRY > retries)){
+//	tstate = rStart;
+//	printPrgMem(PRTSTTTBL, PRTSTTRETRY);
+//	delay(RESFREEDEL/actChan); // delay for modem resource free
+//	(void)LoRaMgmtUpdt();
+//	break;
+//}
+//
+//tstate = rEvaluate;
+//printPrgMem(PRTSTTTBL, PRTSTTEVALUATE);
+//// fall-through
+//// @suppress("No break at end of case")
+
 /*
- * LoRaMgmtTxPwr: set power index on modem
+ * LoRaMgmtGetResults: getter for last experiment results
+ *
+ * Arguments: - result structure pointer
+ *
+ * Return:	  - 0 if OK, < 0 = error, 0 = busy, 1 = done, 2 = stop
+ */
+int
+LoRaMgmtGetResults(sLoRaResutls_t ** const res){
+	if (!trn)
+		return -1;
+	int ret = 0;
+	trn->testTime = millis() - startTestTS;
+	if (conf->mode == 1){
+		trn->txFrq = conf->frequency*100000;
+		trn->lastCR = conf->codeRate;
+		trn->txDR = conf->spreadFactor;
+		trn->txPwr = conf->txPowerTst;
+	}
+	else{
+		trn->txFrq = ttn.getFrequency();
+		ret |= LoRaGetChannels(&res->chnMsk);
+		trn->lastCR = ttn.getCR();
+		trn->txDR = ttn.getDR();
+		trn->txPwr = ttn.getPower();
+		trn->rxRssi = ttn.getRSSI();
+		trn->rxSnr = ttn.getSNR();
+	}
+	*res = trn++;// shift to next slot
+	return (ret == 0) ? 1 : -1;
+}
+
+/*
+ * LoRaMgmtJoin: Join a LoRaWan network
+ *
+ * Arguments: -
+ *
+ * Return:	  - returns < 0 = error, 0 = busy, 1 = done, 2 = stop
+ */
+int
+LoRaMgmtJoin(){
+	(void)LoRaMgmtSetup(conf, trn);
+	(void)loRaJoin(conf);
+	return 0;
+}
+
+/*
+ * LoRaMgmtUpdt: Update LoRa message buffer
  *
  * Arguments: -
  *
  * Return:	  - return 0 if OK, -1 if error
  */
-int LoRaMgmtTxPwr(uint8_t txPwr){
+int
+LoRaMgmtUpdt(){
+	if (internalState == iIdle){
+		// Prepare PayLoad of x bytes
+		(void)generatePayload(genbuf);
 
-	ttn.setPowerIndex(txPwr);
+		pollcnt = 0;
+
+		return 1;
+	}
 
 	return 0;
 }
 
+/*
+ * LoRaMgmtRcnf: reset modem and reconfiguration
+ *
+ * Arguments: -
+ *
+ * Return:	  - returns < 0 = error, 0 = busy, 1 = done, 2 = stop
+ */
+int
+LoRaMgmtRcnf(){
+	if (internalState == iIdle){
+//		internalState = iPoll; // wait for a poll timer before continuing to next step
+//		if (conf)
+//			ttn.reset(1); // reset with adr on
 
+		return !LoRaMgmtSetup(conf, trn)? 1 :  -1;
+	}
+	return 0;
+}
+
+/*
+ * LoRaMgmtGetEUI: get EUI of the micro-controller
+ *
+ * Arguments: -
+ *
+ * Return:	  - C string EUI
+ */
+const char*
+LoRaMgmtGetEUI(){
+	ttn.getHardwareEui(conf->devEui, 17);
+	return conf->devEui;
+}
+
+/*************** MAIN CALL FUNCTIONS ********************/
+
+/*
+ * LoRaMgmtMain: state machine for the LoRa Control
+ *
+ * Arguments: -
+ *
+ * Return:	  -
+ */
+void
+LoRaMgmtMain (){
+	switch (internalState){
+
+	case iIdle:
+		break;
+	case iSend:
+	case iRetry:
+		startSleepTS = millis();
+		sleepMillis = 100;	// Sleep timer after send, minimum wait
+		internalState = iSleep;
+		break;
+	case iPoll:
+		startSleepTS = millis();
+		trn->txDR = ttn.getDR();
+		sleepMillis = rxWindow1 + rxWindow2 + computeAirTime(conf->dataLen, trn->txDR) + 1000; // e.g. ACK lost, = 2+-1s (random)
+		internalState = iSleep;
+		break;
+	case iBusy:	// Duty cycle = 1% chn [1-3], 0.1% chn [4-8]  pause = T/dc - T
+		startSleepTS = millis();
+		trn->txDR = ttn.getDR();
+		sleepMillis = rxWindow1 + rxWindow2 + computeAirTime(conf->dataLen, trn->txDR);
+		internalState = iSleep;
+		break;
+	case iChnWait:
+		startSleepTS = millis();
+		trn->txDR = ttn.getDR();
+		{
+			uint32_t timeAir = computeAirTime(conf->dataLen, trn->txDR);
+			sleepMillis =  timeAir * 100 - timeAir; // This is for Channel 1-3, others * 1000
+		}
+		internalState = iSleep;
+		break;
+	case iSleep:
+		if (millis() - startSleepTS > sleepMillis)
+			internalState = iIdle;
+	}
+}
