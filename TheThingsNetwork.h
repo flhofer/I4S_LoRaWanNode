@@ -96,7 +96,7 @@ private:
   uint8_t sf;
   uint8_t fsb;
   bool adr;
-  char buffer[268]; // MAX rx/tx lenght = "mac tx uncnf 230 " + 250 bytes + "\n"
+  char buffer[280]; // MAX rx/tx lenght = "mac tx uncnf 242 " + 242 bytes + "\n"
   bool baudDetermined = false;
   void (*messageCallback)(const uint8_t *payload, size_t size, port_t port);
   void (*beforeTxCallback)(void);
@@ -176,6 +176,7 @@ public:
   bool setChannelDCycle (uint8_t ch, float dcycle);
   bool setChannelStatus (uint8_t ch, bool status);
   bool setPowerIndex(uint8_t idx);
+  bool setDR(uint8_t dr);
 };
 
 #endif

@@ -1196,6 +1196,12 @@ bool TheThingsNetwork::setPowerIndex(uint8_t idx){
   return sendMacSet(MAC_PWRIDX, buf);
 }
 
+bool TheThingsNetwork::setDR(uint8_t dr){
+  char buf[4];
+  sprintf(buf, "%u",dr);
+  return sendMacSet(MAC_DR, buf);
+}
+
 bool TheThingsNetwork::setSF(uint8_t sf)
 {
   uint8_t dr;
