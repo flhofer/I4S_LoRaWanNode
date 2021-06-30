@@ -439,6 +439,9 @@ int LoRaMgmtSend(){
 		internalState = iPoll;
 		pollcnt = 0;
 		trn->txCount++;
+		if (ret == TTN_SUCCESSFUL_RECEIVE && !(conf->confMsk & CM_UCNF))
+			// message received
+			return 2;
 		return 1;
 	}
 	return 0;	// else busy
@@ -537,65 +540,6 @@ LoRaMgmtRemote(){
 
 /*************** MANAGEMENT FUNCTIONS ********************/
 
-//
-//if ((ret = LoRaMgmtSend()) && ret != 1){
-//	if (-9 == ret) // no chn -> pause for free-delay / active channels
-//		delay(RESFREEDEL/actChan);
-//	else
-//		delay(100); // simple retry timer 100ms, e.g. busy
-//	break;
-//}
-//
-//// sent but no response from confirmed, or not confirmed msg, goto poll
-//if (ret == 1 || !confirmed){
-//	tstate = rRun;
-//	printPrgMem(PRTSTTTBL, PRTSTTPOLL);
-//
-//}
-//else {
-//	tstate = rStop;
-//	printPrgMem(PRTSTTTBL, PRTSTTSTOP);
-//	break;
-//}
-//// fall-through
-//// @suppress("No break at end of case")
-
-//if ((ret = LoRaMgmtPoll()) && (confirmed || (pollcnt < UNCF_POLL))){
-//	if (-9 == ret) // no chn -> pause for free-delay / active channels
-//		delay(RESFREEDEL/actChan);
-//	else if (1 == ret)
-//		pollcnt++;
-//	else
-//		delay(100); // simple retry timer 100ms, e.g. busy
-//	break;
-//}
-//
-//// Unconf polling ended and still no response, or confirmed and error message (end of retries)
-//if ((failed = (0 != ret)))
-//	printPrgMem(PRTSTTTBL, PRTSTTPOLLERR);
-//
-//tstate = rStop;
-//printPrgMem(PRTSTTTBL, PRTSTTSTOP);
-//// fall-through
-//// @suppress("No break at end of case")
-
-//retries++;
-//pollcnt=0;
-//
-//// unsuccessful and retries left?
-//if (failed && (TST_RETRY > retries)){
-//	tstate = rStart;
-//	printPrgMem(PRTSTTTBL, PRTSTTRETRY);
-//	delay(RESFREEDEL/actChan); // delay for modem resource free
-//	(void)LoRaMgmtUpdt();
-//	break;
-//}
-//
-//tstate = rEvaluate;
-//printPrgMem(PRTSTTTBL, PRTSTTEVALUATE);
-//// fall-through
-//// @suppress("No break at end of case")
-
 /*
  * LoRaMgmtSetup: Setup LoRaWan communication with Modem
  *
@@ -618,7 +562,6 @@ LoRaMgmtSetup(const sLoRaConfiguration_t * newConf,
 			ret = setupLoRaWan(newConf);
 			ret |= setChannelsCnf(newConf, 0, 5);
 			ret |= setChannels(newConf->chnMsk, newConf->dataRate);
-//			setActiveBands(newConf->chnMsk);
 	}
 	ret |= setTxPwr(newConf->mode, newConf->txPowerTst);
 
