@@ -20,6 +20,8 @@
 #define RESFREEDEL	40000		// ~resource freeing delay ETSI requirement air-time reduction
 #define MACHDRFTR	13			// Length in bytes of MACHDR + FHDR + FPORT + MIC
 
+#define MAX(a, b)	(a > b) ? a : b
+
 // Modem constructor
 static TheThingsNetwork ttn(loraSerial, debugSerial,
 					freqPlan, TTN_DEFAULT_SF, TTN_DEFAULT_FSB);
@@ -170,7 +172,7 @@ computeAirTime(uint8_t dataLen, uint8_t dataRate){
 
 	dataLen+=MACHDRFTR;
 
-	return dataLen * 1000 / dataRates[Max(12-dataRate, 0)];
+	return dataLen * 1000 / dataRates[MAX(12-dataRate, 0)];
 }
 
 /*
@@ -213,7 +215,7 @@ getChannels(uint16_t * chnMsk){
  * Return:	  - return 0 if OK, -1 if error
  */
 static int
-setChannelsCnf(uint8_t drMin, uint8_t drMax){
+setChannelsCnf(const sLoRaConfiguration_t * newConf, uint8_t drMin, uint8_t drMax){
 
   bool retVal = true;
   long frq = 0;
@@ -224,7 +226,8 @@ setChannelsCnf(uint8_t drMin, uint8_t drMax){
 		  frq = 864100000 + 200000 * (i - 8);
 
 	  retVal &= ttn.setChannel((uint8_t)i, frq, drMin, drMax);
-	  retVal &= ttn.setChannelDCycle((uint8_t)i, 100.0);
+	  if (newConf->confMsk & CM_DTYCL)
+			retVal &= ttn.setChannelDCycle((uint8_t)i, 100.0);
   }
 
   return !retVal * -1;
@@ -249,13 +252,12 @@ setChannels(uint16_t chnMsk, uint8_t dataRate) {
 
 	if (dataRate == 255){
 		retVal &= ttn.setDR(5);
-		retVal &= ttn.reset(true);
+		retVal &= ttn.setADR(true);
 	}
 	else {
-		retVal &= ttn.reset(false);
+		retVal &= ttn.setADR(false);
 		retVal &= ttn.setDR(dataRate);
 	}
-	retVal &=  !setChannelsCnf(0 , 5);
 
 	return !retVal * -1;
 }
@@ -285,16 +287,14 @@ loRaJoin(const sLoRaConfiguration_t * newConf){ // TODO: this resets ADR -> set 
 static int
 setupLoRaWan(const sLoRaConfiguration_t * newConf){
 
-	if (!modem.begin(freqPlan)) {
-		debugSerial.println("Failed to start module");
-		return -1;
-	};
+	installTimer(); // setup timer1 registers
 
 	int ret = 0;
-	ret |= !modem.dutyCycle(newConf->confMsk & CM_DTYCL); // switch off the duty cycle
-	ret |= !modem.setADR(false);	// disable ADR by default
 
-	modem.publicNetwork(!(newConf->confMsk & CM_NPBLK));
+	// Initialize Serial1
+	loraSerial.begin(57600);
+
+	ret |= !ttn.setADR(false);
 
 	if (!(newConf->confMsk & CM_RJN) && loRaJoin(newConf))
 	{
@@ -303,14 +303,23 @@ setupLoRaWan(const sLoRaConfiguration_t * newConf){
 		return -1;
 	}
 
-	// Set poll interval to 1 sec.
-	modem.minPollInterval(1); // for testing only
+//	ttn.setClass(CLASS_C);
+	ttn.onMessage(&onMessage);
+	ttn.onBeforeTx(&onBeforeTx);
+	ttn.onAfterTx(&onAfterTx);
+	ttn.onAfterRx(&onAfterRx);
+
+	ttn.showStatus();
+
+//	wdt = ttn.getWatchDogTimer();
+//
+//	debugSerial.print("Watchdog timer set to [ms] ");
+//	debugSerial.println(wdt);
 
 	if (!(newConf->confMsk & CM_OTAA)){
 		// set to LorIoT standard RX, DR
-		ret |= !modem.setRX2Freq(869525000);
-		ret |= !modem.setRX2DR(0);
-	}
+		ret |= !ttn.setRx2Channel(869525000, 0);
+	}	// set to LorIoT standard RX, DR = 0, not default
 
 	return ret *-1;
 }
@@ -325,47 +334,27 @@ setupLoRaWan(const sLoRaConfiguration_t * newConf){
 static int
 setupDumb(const sLoRaConfiguration_t * newConf){
 
-	modem.dumb();
-
-	// Configure LoRa module to transmit and receive at 915MHz (915*10^6)
-	// Replace 915E6 with the frequency you need (eg. 433E6 for 433MHz)
-	if (!LoRa.begin((long)newConf->frequency * 100000)) {
-		debugSerial.println("Starting LoRa failed!");
-		return -1;
-	}
-
-	LoRa.setSpreadingFactor(newConf->spreadFactor);
-	LoRa.setSignalBandwidth(newConf->bandWidth*1000);
-	LoRa.setCodingRate4(newConf->codeRate);
-
 	return 0;
 }
 
 /*
- * setupPacket: setup LoRa packet parameters communication with modem
- *
- * Arguments: - pointer to test configuration to use
- *
- * Return:	  - return 0 if OK, -1 if error
- */
-static int
-setupPacket(const sLoRaConfiguration_t * newConf){
-	int ret = 0;
-	ret |= !modem.setTxConfirmed(!(newConf->confMsk & CM_UCNF));
-	ret |= !modem.setPort(2 + ((newConf->confMsk & CM_UCNF) >> 3));
-	return ret * -1;
-
-}
-
+* evaluateResponse: evaluate modem response and inquiry more detail (if necessary)
+*
+* Arguments: - return value from modem send/poll
+*
+* Return:	  - 0 if done?, 1 if ok send, 2 if ok tx/rx, neg if error/busy
+*/
 static int
 evaluateResponse(int ret){
 	switch (ret) {
 
 	  // TX only
 	case TTN_SUCCESSFUL_TRANSMISSION:
+	  return 1;
+
 	  // ACK receive ok
 	case TTN_SUCCESSFUL_RECEIVE:
-	  return 0;
+	  return 2;
 
 	case TTN_UNSUCESSFUL_RECEIVE:
 		int tn;
@@ -375,7 +364,7 @@ evaluateResponse(int ret){
 		if (tn == TTN_MDM_IDLE)
 			return 0; // Listening but Nothing left to send?
 		else
-			return 1; // Maybe still outstanding response
+			return LORABUSY; // Maybe still outstanding response
 
 	default:
 	case TTN_ERROR_UNEXPECTED_RESPONSE:
@@ -383,30 +372,51 @@ evaluateResponse(int ret){
 	  return -999;
 
 	case TTN_ERROR_SEND_COMMAND_FAILED:
-	  return (int)ttn.getLastError(); // transform error code to int -> forward to main
+	  return (int)ttn.getLastError();
 	}
 }
 
 /*************** TEST SEND FUNCTIONS ********************/
 
 /*
- * LoRaMgmtSendConf: send a confirmed message. If no response arrives
- * 		within timeout, return 1 (busy)
+ * LoRaMgmtSend: send a message with the defined mode
  *
  * Arguments: -
  *
- * Return:	  status of sending, 0 ok, -1 error, 1 busy
+ * Return:	  status of sending, < 0 = error, 0 = busy, 1 = done, 2 = stop
  */
 int LoRaMgmtSend(){
 
-	// TODO: get rid of local buffer genbuf
-	byte payload[dataLen];
-	(void)memcpy(payload, genbuf, dataLen);
+	if (internalState == iIdle){
+		internalState = iSend;
 
-	// Send it off
-	ttn_response_t ret = ttn.sendBytes(payload, sizeof(payload), 1, conf);
-	pollTstamp = millis();
-	return evaluateResponse(ret);
+		// Send it off
+		{
+			port_t port = 2 + ((conf->confMsk & CM_UCNF) >> 3);
+
+			ttn_response_t rsp = ttn.sendBytes(genbuf, conf->dataLen,
+					port, !(conf->confMsk & CM_UCNF));
+			int ret = evaluateResponse(rsp);
+
+			if (ret < 0){
+				if (LORABUSY == ret ){ // no channel available -> pause for free-delay / active channels
+					internalState = iBusy;
+					return 0;
+				}
+				else if (-9 == ret){ // MKR does not have it
+					internalState = iChnWait;
+					return 0;
+				}
+				return ret;
+			}
+		}
+
+		internalState = iPoll;
+		pollcnt = 0;
+		trn->txCount++;
+		return 1;
+	}
+	return 0;	// else busy
 }
 
 /*
@@ -431,73 +441,6 @@ int LoRaMgmtPoll(){
 }
 
 /*************** MANAGEMENT FUNCTIONS ********************/
-
-/*
- * LoRaMgmtSetup: setup LoRaWan communication with modem
- *
- * Arguments: -
- *
- * Return:	  -
- */
-void LoRaMgmtSetup(){
-
-	installTimer(); // setup timer1 registers
-
-	// Initialize Serial1
-	loraSerial.begin(57600);
-
-	debugSerial.println("-- PERSONALIZE");
-	ttn.personalize(devAddr, nwkSKey, appSKey);
-
-//	ttn.setClass(CLASS_C);
-	ttn.onMessage(&onMessage);
-	ttn.onBeforeTx(&onBeforeTx);
-	ttn.onAfterTx(&onAfterTx);
-	ttn.onAfterRx(&onAfterRx);
-
-	debugSerial.println("-- STATUS");
-	ttn.showStatus();
-
-	wdt = ttn.getWatchDogTimer();
-
-	debugSerial.print("Watchdog timer set to [ms] ");
-	debugSerial.println(wdt);
-
-	// set to LorIoT standard RX, DR = 0, not default
-	ttn.setRx2Channel(869525000, 0);
-}
-
-/*
- * LoRaSetGblParam: set generic parameters, re-init random seed
- *
- * Arguments: - confirmed send yes/no
- * 			  - simulated payload length
- *
- * Return:	  -
- */
-void LoRaSetGblParam(bool confirm, int datalen){
-	conf = confirm;
-	// set boundaries for len value
-	dataLen = max(min(datalen, MAXLORALEN), 1);
-
-	// initialize random seed with datalen as value
-	// keep consistency among tests, but differs with diff len
-	srandom(dataLen);
-	// Prepare PayLoad of x bytes
-	(void)generatePayload(genbuf);
-}
-
-/*
- * LoRaMgmtSetup: setup LoRaWan communication with modem
- *
- * Arguments: -
- *
- * Return:	  - return 0 if OK, -1 if error
- */
-int LoRaMgmtSetupDumb(long FRQ){
-
-}
-
 
 //
 //if ((ret = LoRaMgmtSend()) && ret != 1){
@@ -559,6 +502,50 @@ int LoRaMgmtSetupDumb(long FRQ){
 //// @suppress("No break at end of case")
 
 /*
+ * LoRaMgmtSetup: Setup LoRaWan communication with Modem
+ *
+ * Arguments: - result structure pointer to list of results
+ *
+ * Return:	  - returns 0 if successful, else -1
+ */
+int
+LoRaMgmtSetup(const sLoRaConfiguration_t * newConf,
+		sLoRaResutls_t * const result){
+
+	int ret = 0;
+	switch (newConf->mode){
+	default:
+	case 0: ;
+			break;
+	case 1: ret = setupDumb(newConf);
+			break;
+	case 2 ... 4:
+			ret = setupLoRaWan(newConf);
+			ret |= setChannelsCnf(newConf, 0, 5);
+			ret |= setChannels(newConf->chnMsk, newConf->dataRate);
+//			setActiveBands(newConf->chnMsk);
+	}
+	ret |= setTxPwr(newConf->mode, newConf->txPowerTst);
+
+	// initialize random seed with dataLen as value
+	// keep consistency among tests, but differs with diff len
+	rnd_contex = newConf->dataLen;
+	// Prepare PayLoad of x bytes
+	(void)generatePayload(genbuf);
+
+	trn = result;
+
+	pollcnt = 0;
+	trn->txCount = 0;
+
+	if (ret == 0)
+		conf = newConf;
+
+	startTestTS = millis();
+	return ret;
+}
+
+/*
  * LoRaMgmtGetResults: getter for last experiment results
  *
  * Arguments: - result structure pointer
@@ -579,7 +566,7 @@ LoRaMgmtGetResults(sLoRaResutls_t ** const res){
 	}
 	else{
 		trn->txFrq = ttn.getFrequency();
-		ret |= LoRaGetChannels(&res->chnMsk);
+		ret |= getChannels(&trn->chnMsk);
 		trn->lastCR = ttn.getCR();
 		trn->txDR = ttn.getDR();
 		trn->txPwr = ttn.getPower();
