@@ -26,14 +26,9 @@
 static TheThingsNetwork ttn(loraSerial, debugSerial,
 					freqPlan, TTN_DEFAULT_SF, TTN_DEFAULT_FSB);
 
-static uint8_t actBands = 2;	// active channels
 static int	pollcnt;			// un-conf poll retries
 
-static unsigned long rnd_contex;	// pseudo-random generator context (for reentrant)
-static byte genbuf[MAXLORALEN];		// buffer for generated message
-
 static uint32_t startSleepTS;	// relative MC time of Sleep begin
-static uint32_t timerMillisTS;	// relative MC time for timers
 static uint32_t startTestTS;	// relative MC time for test start
 static uint32_t sleepMillis;	// Time to remain in sleep
 static uint32_t rxWindow1 = 1000; // pause duration in ms between tx and rx TODO: get parameter
@@ -51,22 +46,6 @@ static enum {	iIdle,
 			} internalState;
 
 /********************** HELPERS ************************/
-
-/*
- * generatePayload: fills a buffer with dataLen random bytes
- *
- * Arguments: - Byte vector for payload
- *
- * Return:	  - next open position (end of buffer)
- */
-static byte *
-generatePayload(byte *payload){
-
-	for (int i=0; i < conf->dataLen; i++, payload++)
-		*payload=(byte)(random_r(&rnd_contex) % 255);
-
-	return payload;
-}
 
 /*************** CALLBACK FUNCTIONS ********************/
 
@@ -149,7 +128,6 @@ onMessageRemote(const uint8_t *payload, size_t size, port_t port){
  */
 static void
 onBeforeTx(){
-	timerMillisTS = millis();
 	trn->timeTx = 0;
 	trn->timeRx = 0;
 	trn->timeToRx = 0;
@@ -430,6 +408,14 @@ int LoRaMgmtSend(){
 		{ // Send it off
 			port_t port = 2 + ((conf->confMsk & CM_UCNF) >> 3);
 
+			// initialize random seed with dataLen as value
+			// keep consistency among tests, but differs with diff len
+			unsigned long rnd_contex = conf->dataLen;	// pseudo-random generator context (for reentrant)
+			byte genbuf[MAXLORALEN];				// buffer for generated message
+
+			for (int i=0; i < conf->dataLen; i++)
+				genbuf[i]=(byte)(random_r(&rnd_contex) % 255);
+
 			ttn_response_t rsp = ttn.sendBytes(genbuf, conf->dataLen,
 					port, !(conf->confMsk & CM_UCNF));
 			ret = evaluateResponse(rsp);
@@ -575,13 +561,6 @@ LoRaMgmtSetup(const sLoRaConfiguration_t * newConf,
 			ret |= setChannels(newConf->chnMsk, newConf->dataRate);
 	}
 	ret |= setTxPwr(newConf->mode, newConf->txPowerTst);
-
-	// initialize random seed with dataLen as value
-	// keep consistency among tests, but differs with diff len
-	rnd_contex = newConf->dataLen;
-	// Prepare PayLoad of x bytes
-	(void)generatePayload(genbuf);
-
 	trn = result;
 
 	pollcnt = 0;
@@ -651,7 +630,7 @@ int
 LoRaMgmtUpdt(){
 	if (internalState == iIdle){
 		// Prepare PayLoad of x bytes
-		(void)generatePayload(genbuf);
+//		(void)generatePayload(genbuf);
 
 		pollcnt = 0;
 
