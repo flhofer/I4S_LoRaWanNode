@@ -765,7 +765,7 @@ void readInput() {
 
 			case 'C':
 				newConf.chnMsk = readSerialH();
-				if (newConf.chnMsk < 0x01 || newConf.chnMsk > 0xFF ){ //TODO: this is limiting to EU868
+				if (newConf.chnMsk < 0x01 || newConf.chnMsk > 0xFFFF ){ //TODO: this is limiting to EU868
 					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 					newConf.chnMsk = 0xFF; // set to default
 				}
