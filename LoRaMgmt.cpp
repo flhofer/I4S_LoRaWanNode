@@ -50,9 +50,6 @@ static enum {	iIdle,
 				iSleep,
 			} internalState;
 
-static unsigned long wdt;			// watch-dog timeout timer value, 15000 default
-static unsigned long pollTstamp;	// last poll time-stamp
-
 /********************** HELPERS ************************/
 
 /*
@@ -364,7 +361,7 @@ evaluateResponse(int ret){
 		if (tn == TTN_MDM_IDLE)
 			return 0; // Listening but Nothing left to send?
 		else
-			return LORABUSY; // Maybe still outstanding response
+			return TTN_ERR_BUSY; // Maybe still outstanding response
 
 	default:
 	case TTN_ERROR_UNEXPECTED_RESPONSE:
@@ -390,25 +387,25 @@ int LoRaMgmtSend(){
 	if (internalState == iIdle){
 		internalState = iSend;
 
-		// Send it off
-		{
+		int ret;
+		{ // Send it off
 			port_t port = 2 + ((conf->confMsk & CM_UCNF) >> 3);
 
 			ttn_response_t rsp = ttn.sendBytes(genbuf, conf->dataLen,
 					port, !(conf->confMsk & CM_UCNF));
-			int ret = evaluateResponse(rsp);
+			ret = evaluateResponse(rsp);
+		}
 
-			if (ret < 0){
-				if (LORABUSY == ret ){ // no channel available -> pause for free-delay / active channels
-					internalState = iBusy;
-					return 0;
-				}
-				else if (-9 == ret){ // MKR does not have it
-					internalState = iChnWait;
-					return 0;
-				}
-				return ret;
+		if (ret < 0){
+			if (TTN_ERR_BUSY == ret ){ // no channel available -> pause for free-delay / active channels
+				internalState = iBusy;
+				return 0;
 			}
+			else if (TTN_ERR_NFRCHN == ret){ // MKR does not have it
+				internalState = iChnWait;
+				return 0;
+			}
+			return ret;
 		}
 
 		internalState = iPoll;
