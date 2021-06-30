@@ -417,25 +417,107 @@ int LoRaMgmtSend(){
 }
 
 /*
- * LoRaMgmtPoll: poll function for confirmed and delayed TX
+ * LoRaMgmtPoll: poll function for confirmed and delayed TX, check Receive
  *
  * Arguments: -
  *
- * Return:	  status of polling, 0 ok, -1 error, 1 busy
+ * Return:	  status of polling, < 0 = error, 0 = busy, 1 = done, 2 = stop
  */
-int LoRaMgmtPoll(){
+int
+LoRaMgmtPoll(){
+	if (internalState == iIdle){
+		internalState = iPoll;
 
-	// compute time, wait for window length at least seconds, aware of unsigned
-	unsigned long wait = (rxWindow1 + rxWindow2) - min(rxWindow1 + rxWindow2, (millis() - pollTstamp));
-	delay(wait);
+		if (!(conf->confMsk & CM_UCNF)){
+			{
+				enum ttn_modem_status_t stat = ttn.getStatus();
+				if (TTN_MDM_IDLE == stat){
+					// Not yet sent/received
+					internalState = iRetry;
+					return 0;
+				}
+			}
+			// set modem to true to read only modem.
+			ttn_response_t stat = ttn.poll(1, true, true);
+			return (TTN_SUCCESSFUL_RECEIVE == evaluateResponse(stat)) ? 1 : -1;
+		}
+		else{
+			// set modem to true to read only modem.
+			ttn_response_t stat = ttn.poll(1, false, false);
+			int ret = evaluateResponse(stat);
+			if (0 > ret){
+				if (pollcnt < POLL_NO-1){
+					if (TTN_ERR_BUSY == ret ) //
+						internalState = iBusy;
+					else if (TTN_ERR_NFRCHN == ret)   // no channel available -> pause for duty cycle-delay prop
+						internalState = iChnWait;
+					else
+						internalState = iRetry;
+					return 0;	// return 0 until count
+				}
+				pollcnt++;
+				return -1;
+			}
 
-	// set modem to true to read only modem.
-	ttn_response_t ret = ttn.poll(1, conf, conf);
+			pollcnt++;
+			trn->txCount++;
 
-	pollTstamp = millis();
-
-	return evaluateResponse(ret);
+			// read receive buffer
+			if (ret == TTN_SUCCESSFUL_RECEIVE){
+				// message received
+				return 1;
+			}
+			else {
+				// No message received
+				if (pollcnt < POLL_NO)
+					return 0;
+				return -1;
+			}
+		}
+	}
+	return 0;
 }
+
+/*
+ * LoRaMgmtRemote: poll modem for go/stop commands
+ *
+ * Arguments: -
+ *
+ * Return:	  status of polling, < 0 = error, 0 = busy, 1 = done, 2 = stop
+ */
+int
+LoRaMgmtRemote(){
+	if (internalState == iIdle){
+		internalState = iPoll;
+
+		int ret = modem.poll();
+		if (ret < 0 && ret != LORABUSY)
+			return ret;
+
+		if (!modem.available()) {
+			// No down-link message received at this time.
+			return 0;
+		}
+
+		char rcv[MAXLORALEN];
+		int len = modem.readBytesUntil('\r', rcv, MAXLORALEN);
+
+		if (len == 1){ // one letter
+			switch(rcv[0]){
+			case 'R':
+				return 1;
+
+			case 'S':
+				return 2;
+			}
+		}
+
+		debugSerial.print("Invalid message, ");
+		printMessage(rcv, len);
+	}
+	return 0;
+}
+
 
 /*************** MANAGEMENT FUNCTIONS ********************/
 
