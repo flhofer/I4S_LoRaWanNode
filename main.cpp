@@ -143,7 +143,7 @@ printTestResults(int count){
 	// for printing
 	char buf[128];
 
-	debugSerial.print(prtSttResults);
+	printPrgMem(PRTSTTTBL, PRTSTTRESULTS);
 	for (int i = 1; i<= min(TST_MXRSLT, count); i++, trn++){
 		sprintf(buf, "%02d;%02u;%07lu;%07lu;0x%02X;%lu;%02u;%02d;%03d;%03d",
 				i, //trn->testTime,
@@ -643,7 +643,9 @@ void readInput() {
 
 		case 'I': // Print type of micro-controller
 			{
-				const char * EUI = LoRaMgmtGetEUI();
+				if (!newConf.devEui)
+					resetKeyBuffer();
+				const char * EUI = LoRaMgmtGetEUI(&newConf);
 				if (EUI)
 					debugSerial.println(EUI);
 				else
