@@ -91,7 +91,7 @@ int LoRaMgmtRemote();
 
 int LoRaMgmtGetResults(sLoRaResutls_t ** const res);
 
-const char* LoRaMgmtGetEUI();
+const char* LoRaMgmtGetEUI(const sLoRaConfiguration_t * newConf);
 int LoRaMgmtUpdt();
 int LoRaMgmtRcnf();
 

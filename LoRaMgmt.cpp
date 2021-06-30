@@ -303,16 +303,8 @@ setupLoRaWan(const sLoRaConfiguration_t * newConf){
 		return -1;
 	}
 
+//	ttn.showStatus();
 //	ttn.setClass(CLASS_C);
-	if (newConf->mode == 3)
-		ttn.onMessage(&onMessageRemote);
-	else
-		ttn.onMessage(&onMessage);
-	ttn.onBeforeTx(&onBeforeTx);
-	ttn.onAfterTx(&onAfterTx);
-	ttn.onAfterRx(&onAfterRx);
-
-	ttn.showStatus();
 
 //	wdt = ttn.getWatchDogTimer();
 //
@@ -566,9 +558,17 @@ LoRaMgmtSetup(const sLoRaConfiguration_t * newConf,
 	pollcnt = 0;
 	trn->txCount = 0;
 
-	if (ret == 0)
-		conf = newConf;
+	if (ret == 0){
+		if (newConf->mode == 3)
+			ttn.onMessage(&onMessageRemote);
+		else
+			ttn.onMessage(&onMessage);
+		ttn.onBeforeTx(&onBeforeTx);
+		ttn.onAfterTx(&onAfterTx);
+		ttn.onAfterRx(&onAfterRx);
 
+		conf = newConf;
+	}
 //	startTestTS = millis();
 	return ret;
 }
@@ -667,8 +667,11 @@ LoRaMgmtRcnf(){
  * Return:	  - C string EUI
  */
 const char*
-LoRaMgmtGetEUI(){
-	ttn.getHardwareEui(conf->devEui, 17);
+LoRaMgmtGetEUI(const sLoRaConfiguration_t * newConf){
+	// Initialize Serial1
+	loraSerial.begin(57600);
+
+	ttn.getHardwareEui(newConf->devEui, 17);
 	return conf->devEui;
 }
 
