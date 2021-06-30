@@ -404,6 +404,17 @@ evaluateResponse(int ret){
 /*************** TEST SEND FUNCTIONS ********************/
 
 /*
+ * LoRaMgmtSendDumb: send a message with the defined mode (dumb.. stub for now)
+ *
+ * Arguments: -
+ *
+ * Return:	  status of sending, < 0 = error, 0 = busy, 1 = done, 2 = stop
+ */
+int LoRaMgmtSendDumb(){
+	return 0;
+}
+
+/*
  * LoRaMgmtSend: send a message with the defined mode
  *
  * Arguments: -
