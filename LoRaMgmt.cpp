@@ -117,6 +117,31 @@ onMessage(const uint8_t *payload, size_t size, port_t port){
 }
 
 /*
+ * onMessageRemote: Callback function for LoraRx on LoRaRemote incoming Message
+ * Arguments: - Byte vector with payload
+ * 			  - vector length
+ * 			  - LoRaWan Port
+ * Return:	  -
+ */
+static void
+onMessageRemote(const uint8_t *payload, size_t size, port_t port){
+
+	if (size == 1){ // one letter
+		switch(*payload){
+		case 'R':
+			pollcnt = 1;
+			return;
+		case 'S':
+			pollcnt = 2;
+			return;
+		}
+	}
+
+	debugSerial.print("Invalid message, ");
+	onMessage(payload, size, port);
+}
+
+/*
  * onBeforeTx: Callback function for before LoRa TX
  * Arguments: -
  *
@@ -301,7 +326,10 @@ setupLoRaWan(const sLoRaConfiguration_t * newConf){
 	}
 
 //	ttn.setClass(CLASS_C);
-	ttn.onMessage(&onMessage);
+	if (newConf->mode == 3)
+		ttn.onMessage(&onMessageRemote);
+	else
+		ttn.onMessage(&onMessage);
 	ttn.onBeforeTx(&onBeforeTx);
 	ttn.onAfterTx(&onAfterTx);
 	ttn.onAfterRx(&onAfterRx);
@@ -490,30 +518,18 @@ LoRaMgmtRemote(){
 	if (internalState == iIdle){
 		internalState = iPoll;
 
-		int ret = modem.poll();
-		if (ret < 0 && ret != LORABUSY)
+		ttn_response_t stat =  ttn.poll(1, false,false);
+		int ret = evaluateResponse(stat);
+
+		if (ret < 0 && ret != TTN_ERR_BUSY && ret != TTN_ERR_NFRCHN)
 			return ret;
 
-		if (!modem.available()) {
+		if (ret != TTN_SUCCESSFUL_RECEIVE){
 			// No down-link message received at this time.
 			return 0;
 		}
 
-		char rcv[MAXLORALEN];
-		int len = modem.readBytesUntil('\r', rcv, MAXLORALEN);
-
-		if (len == 1){ // one letter
-			switch(rcv[0]){
-			case 'R':
-				return 1;
-
-			case 'S':
-				return 2;
-			}
-		}
-
-		debugSerial.print("Invalid message, ");
-		printMessage(rcv, len);
+		return pollcnt; // stores read result
 	}
 	return 0;
 }
