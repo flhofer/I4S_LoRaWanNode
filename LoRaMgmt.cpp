@@ -46,7 +46,16 @@ static enum {	iIdle,
 			} internalState;
 
 /********************** HELPERS ************************/
-
+static uint8_t
+countSetBits(int n)
+{
+	uint8_t count = 0;
+	while (n) {
+		n &= (n - 1);
+		count++;
+	}
+	return (count) ? count : 1;
+}
 /*************** CALLBACK FUNCTIONS ********************/
 
 static void onMessage(const uint8_t *payload, size_t size, port_t port) __attribute__((unused));
@@ -228,6 +237,18 @@ setChannelsCnf(const sLoRaConfiguration_t * newConf, uint8_t drMin, uint8_t drMa
 	  retVal &= ttn.setChannel((uint8_t)i, frq, drMin, drMax);
 	  if (newConf->confMsk & CM_DTYCL)
 			retVal &= ttn.setChannelDCycle((uint8_t)i, 100.0);
+	  else{
+		  // ETSI compliant configuration
+		  if (i < 3)
+			  // Base 1-3 common 1%
+			  retVal &= ttn.setChannelDCycle((uint8_t)i, 1.0/(float)countSetBits(newConf->chnMsk & 0xFF07));
+		  	  // others, common 0.1% per band
+		  else if (i<8)
+			  retVal &= ttn.setChannelDCycle((uint8_t)i, 0.1/(float)countSetBits(newConf->chnMsk & ~0xFF07));
+		  else
+			  retVal &= ttn.setChannelDCycle((uint8_t)i, 0.1/(float)countSetBits(newConf->chnMsk & 0xFF00));
+
+	  }
   }
 
   return !retVal * -1;
