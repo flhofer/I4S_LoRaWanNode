@@ -29,7 +29,7 @@ static TheThingsNetwork ttn(loraSerial, debugSerial,
 static int	pollcnt;			// un-conf poll retries
 
 static uint32_t startSleepTS;	// relative MC time of Sleep begin
-static uint32_t startTestTS;	// relative MC time for test start
+//static uint32_t startTestTS;	// relative MC time for test start
 static uint32_t sleepMillis;	// Time to remain in sleep
 static uint32_t rxWindow1 = 1000; // pause duration in ms between tx and rx TODO: get parameter
 static uint32_t rxWindow2 = 1000; // pause duration in ms between rx1 and rx2 TODO: get parameter
@@ -569,7 +569,7 @@ LoRaMgmtSetup(const sLoRaConfiguration_t * newConf,
 	if (ret == 0)
 		conf = newConf;
 
-	startTestTS = millis();
+//	startTestTS = millis();
 	return ret;
 }
 
@@ -585,7 +585,7 @@ LoRaMgmtGetResults(sLoRaResutls_t ** const res){
 	if (!trn)
 		return -1;
 	int ret = 0;
-	trn->testTime = millis() - startTestTS;
+//	trn->testTime = millis() - startTestTS;
 	if (conf->mode == 1){
 		trn->txFrq = conf->frequency*100000;
 		trn->lastCR = conf->codeRate;

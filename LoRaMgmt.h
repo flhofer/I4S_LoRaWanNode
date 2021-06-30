@@ -65,8 +65,8 @@ typedef struct
 //add your function definitions for the project LoRaWanTest here
 // global types
 typedef struct {
-	uint32_t txCount;		// transmission counter
-	uint32_t testTime;		// total test time for this run
+	uint8_t txCount;		// transmission counter
+//	uint32_t testTime;		// total test time for this run
 	uint32_t timeTx;		// time for TX
 	uint32_t timeRx;		// time for RX
 	uint32_t timeToRx;		// total time until response
