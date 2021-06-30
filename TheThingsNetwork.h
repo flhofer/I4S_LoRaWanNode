@@ -96,7 +96,7 @@ private:
   uint8_t sf;
   uint8_t fsb;
   bool adr;
-  char buffer[32]; // was 512 MAX rx/tx lenght = "mac tx uncnf 242 " + 242 bytes + "\n"
+  char buffer[64]; // was 512 MAX rx/tx lenght = "mac tx uncnf 242 " + 242 bytes + "\n"
   bool baudDetermined = false;
   void (*messageCallback)(const uint8_t *payload, size_t size, port_t port);
   void (*beforeTxCallback)(void);
