@@ -36,8 +36,11 @@ const char prtSttSelect[] PROGMEM = "Select Test:\n";
 const char prtSttResults[] PROGMEM = "Results:\n";
 const char prtSttValLong[] PROGMEM = "Error: too long value!\n";
 const char prtSttValLongH[] PROGMEM = "Error: too long value! Remember using h to terminate hex\n";
+const char prtSttInvalid[] PROGMEM = "Error: Invalid value!\n";
+const char prtSttUnknown[] PROGMEM = "Error: Unknown command ";
 
-PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttReset, prtSttRestart, prtSttEnd, prtSttPollErr, prtSttDone, prtSttErrExec, prtSttErrText, prtSttSelect, prtSttResults, prtSttValLong, prtSttValLongH};
+PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRetry, prtSttEvaluate, prtSttReset, prtSttRestart, prtSttEnd,
+		prtSttPollErr, prtSttDone, prtSttErrExec, prtSttErrText, prtSttSelect, prtSttResults, prtSttValLong, prtSttValLongH, prtSttInvalid, prtSttUnknown};
 
 #define PRTSTTSTART		0
 #define PRTSTTPOLL		1
@@ -55,6 +58,8 @@ PGM_P const prtSttStr[] PROGMEM = {prtSttStart, prtSttPoll, prtSttStop, prtSttRe
 #define PRTSTTRESULTS	13
 #define PRTSTTVALLONG	14
 #define PRTSTTVALLONGH	15
+#define PRTSTTINVALID	16
+#define PRTSTTUNKNOWN	17
 
 const char prtTblCR[] PROGMEM = " CR 4/";
 const char prtTblDR[] PROGMEM = " DR ";
@@ -545,7 +550,7 @@ void readInput() {
 		case 'm': // read test mode
 			newConf.mode = (uint8_t)readSerialD();
 			if (newConf.mode > 4){
-				debugSerial.println("Invalid mode [0-4]");
+				printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 				newConf.mode = 0; // set to default
 			}
 			resetKeyBuffer();
@@ -590,7 +595,7 @@ void readInput() {
 		case 'p': // read Tx power index
 			newConf.txPowerTst = (uint8_t)readSerialD();
 			if (newConf.txPowerTst > 5 ){ //TODO: this is limiting to EU868
-				debugSerial.println("Invalid power level [0-5]");
+				printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 				newConf.txPowerTst = 0; // set to default
 			}
 			break;
@@ -599,7 +604,7 @@ void readInput() {
 			newConf.dataLen = (uint8_t)readSerialD();
 			if ((newConf.dataLen > 242 && newConf.mode >=2) // Maximum LoRaWan application payload
 					|| newConf.dataLen == 0 ){
-				debugSerial.println("Invalid data length [1-250]");
+				printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 				newConf.dataLen = 1; // set to default
 			}
 			break;
@@ -607,9 +612,7 @@ void readInput() {
 		case 'r': // read repeat count for LoRaWan packets
 			newConf.repeatSend = (uint8_t)readSerialD();
 			if (newConf.repeatSend == 0 || newConf.repeatSend > TST_MXRSLT){
-				debugSerial.print("Invalid repeat count [1-");
-				debugSerial.print(TST_MXRSLT);
-				debugSerial.println("]");
+				printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 				newConf.repeatSend = 5; // set to default
 			}
 
@@ -622,7 +625,7 @@ void readInput() {
 				(newConf.mode >= 2 && (!newConf.devAddr ||
 									   !newConf.appEui ||
 									   !newConf.appKey))){
-				debugSerial.println("Incomplete configuration!");
+				printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 				break;
 			}
 
@@ -631,7 +634,7 @@ void readInput() {
 
 		case 'S': // stop test
 			testReq = max(qStop, testReq);
-			debugSerial.println("Test stop!");
+			printPrgMem(PRTSTTTBL, PRTSTTSTOP);
 			break;
 
 		case 'T': // Print type of micro-controller
@@ -644,7 +647,7 @@ void readInput() {
 				if (EUI)
 					debugSerial.println(EUI);
 				else
-					debugSerial.println("Could not retrieve EUI");
+					printPrgMem(PRTSTTTBL, PRTSTTERRTEXT);
 			}
 			break;
 
@@ -659,7 +662,7 @@ void readInput() {
 			case 'f': //TODO: this is limiting to EU868
 				newConf.frequency = (long)readSerialD(); // TODO: 10 vs 100kHz
 				if (newConf.frequency < 8630 || newConf.frequency > 8700 ){
-					debugSerial.println("Invalid frequency [8630-8700] * 100 kHz");
+					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 					newConf.frequency = 8683; // set to default
 				}
 				break;
@@ -674,7 +677,7 @@ void readInput() {
 						newConf.bandWidth == 20 ||
 						newConf.bandWidth == 15 ||
 						newConf.bandWidth == 10 )){
-					debugSerial.println("Invalid bandwidth [ 250 | 125 | 62 | 41 | 31 | 20 | 15 | 10 ]");
+					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 					newConf.bandWidth = 250; // set to default
 				}
 				break;
@@ -682,7 +685,7 @@ void readInput() {
 			case 'c': // read code rate
 				newConf.codeRate = (uint8_t)readSerialD();
 				if (newConf.codeRate < 5 || newConf.codeRate > 8){
-					debugSerial.println("Invalid code rate 4/[5-8]");
+					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 					newConf.codeRate = 8; // set to default
 				}
 				break;
@@ -690,12 +693,12 @@ void readInput() {
 			case 's': // read spread factor
 				newConf.spreadFactor = (uint8_t)readSerialD();
 				if (newConf.spreadFactor < 7 || newConf.spreadFactor > 12){
-					debugSerial.println("Invalid spread factor [7-12]");
+					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 					newConf.spreadFactor = 12; // set to default
 				}
 				break;
 			default:
-				debugSerial.print("Unknown command ");
+				printPrgMem(PRTSTTTBL, PRTSTTUNKNOWN);
 				debugSerial.println(A);
 			}
 
@@ -721,7 +724,7 @@ void readInput() {
 			case 'N': // Network session key for ABP
 				readSerialS(newConf.nwkSKey, KEYSIZE);
 				if (strlen(newConf.nwkSKey) < KEYSIZE){
-					debugSerial.println("Invalid network session key");
+					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 					newConf.nwkSKey[0] = '\0';
 				}
 				break;
@@ -729,7 +732,7 @@ void readInput() {
 			case 'A': // Application session key for ABP
 				readSerialS(newConf.appSKey, KEYSIZE);
 				if (strlen(newConf.appSKey) < KEYSIZE){
-					debugSerial.println("Invalid application session key");
+					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 					newConf.appSKey[0] = '\0';
 				}
 				break;
@@ -737,7 +740,7 @@ void readInput() {
 			case 'D': // Device address for ABP
 				readSerialS(newConf.devAddr, KEYSIZE/4);
 				if (strlen(newConf.devAddr) < KEYSIZE/4){
-					debugSerial.println("Invalid device address key");
+					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 					newConf.devAddr[0] = '\0';
 				}
 				break;
@@ -745,7 +748,7 @@ void readInput() {
 			case 'K': // Application Key for OTAA
 				readSerialS(newConf.appKey, KEYSIZE);
 				if (strlen(newConf.appKey) < KEYSIZE){
-					debugSerial.println("Invalid application key");
+					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 					newConf.appKey[0] = '\0';
 				}
 				break;
@@ -753,7 +756,7 @@ void readInput() {
 			case 'E': // EUI address for OTAA
 				readSerialS(newConf.appEui, KEYSIZE/2);
 				if (strlen(newConf.appEui) < KEYSIZE/2){
-					debugSerial.println("Invalid EUI address");
+					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 					newConf.appEui[0] = '\0';
 				}
 				break;
@@ -761,7 +764,7 @@ void readInput() {
 			case 'C':
 				newConf.chnMsk = readSerialH();
 				if (newConf.chnMsk < 0x01 || newConf.chnMsk > 0xFF ){ //TODO: this is limiting to EU868
-					debugSerial.println("Invalid channel mask [0x01-0xFFh]");
+					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 					newConf.chnMsk = 0xFF; // set to default
 				}
 				break;
@@ -769,12 +772,12 @@ void readInput() {
 			case 'd': // read data rate
 				newConf.dataRate = (uint8_t)readSerialD();
 				if (newConf.dataRate > 5){ // we exclude 6 and 7 for now
-					debugSerial.println("Invalid data rate [0-5]");
+					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 					newConf.dataRate = 5; // set to default
 				}
 				break;
 			default:
-				debugSerial.print("Unknown command ");
+				printPrgMem(PRTSTTTBL, PRTSTTUNKNOWN);
 				debugSerial.println(A);
 			}
 	}
