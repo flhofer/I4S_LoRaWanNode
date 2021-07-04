@@ -18,6 +18,8 @@
 #define CM_UCNF			8		// LORAWAN use unconfirmed messages
 #define CM_NPBLK		16		// LORAWAN use not public network
 
+#define KEYSIZE			32		// 32
+
 /**
   * LoRa(Wan) Configuration
   */
@@ -66,7 +68,7 @@ typedef struct
 // global types
 typedef struct {
 	uint8_t txCount;		// transmission counter
-//	uint32_t testTime;		// total test time for this run
+	uint32_t testTime;		// total test time for this run
 	uint32_t timeTx;		// time for TX
 	uint32_t timeRx;		// time for RX
 	uint32_t timeToRx;		// total time until response

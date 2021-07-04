@@ -29,7 +29,7 @@ static TheThingsNetwork ttn(loraSerial, debugSerial,
 static int	pollcnt;			// un-conf poll retries
 
 static uint32_t startSleepTS;	// relative MC time of Sleep begin
-//static uint32_t startTestTS;	// relative MC time for test start
+static uint32_t startTestTS;	// relative MC time for test start
 static uint32_t sleepMillis;	// Time to remain in sleep
 static uint32_t rxWindow1 = 1000; // pause duration in ms between tx and rx TODO: get parameter
 static uint32_t rxWindow2 = 1000; // pause duration in ms between rx1 and rx2 TODO: get parameter
@@ -140,6 +140,7 @@ onBeforeTx(){
 	trn->timeTx = 0;
 	trn->timeRx = 0;
 	trn->timeToRx = 0;
+	startTimer();
 }
 
 /*
@@ -449,8 +450,9 @@ int LoRaMgmtSend(){
 		internalState = iPoll;
 		pollcnt = 0;
 		trn->txCount++;
-		if (ret == TTN_SUCCESSFUL_RECEIVE && !(conf->confMsk & CM_UCNF))
-			// message received
+		if ((ret == TTN_SUCCESSFUL_RECEIVE
+			|| ret == TTN_SUCCESSFUL_TRANSMISSION) && !(conf->confMsk & CM_UCNF))
+			// message ACK received
 			return 2;
 		return 1;
 	}
@@ -467,24 +469,28 @@ int LoRaMgmtSend(){
 int
 LoRaMgmtPoll(){
 	if (internalState == iIdle){
-		internalState = iPoll;
 
 		if (!(conf->confMsk & CM_UCNF)){
-			{
-				enum ttn_modem_status_t stat = ttn.getStatus();
-				if (TTN_MDM_IDLE != stat){
-					// Not yet sent/received
-					internalState = iRetry;
-					return 0;
-				}
-			}
+			internalState = iRetry;
+
+			if (TTN_MDM_IDLE != ttn.getStatus())
+				// Not yet sent/received .. error?
+				return 0;
+
 			// set modem to true to read only modem.
-			ttn_response_t stat = ttn.poll(1, true, true);
-			return (TTN_SUCCESSFUL_RECEIVE == evaluateResponse(stat)) ? 1 : -1;
+			port_t port = 2 + ((conf->confMsk & CM_UCNF) >> 3);
+			ttn_response_t stat = ttn.poll(port, true, true);
+			int ret = evaluateResponse(stat);
+
+			return (TTN_SUCCESSFUL_RECEIVE == ret
+					|| TTN_SUCCESSFUL_TRANSMISSION == ret) ? 1 : -1;
 		}
 		else{
+			internalState = iPoll;
+
 			// set modem to true to read only modem.
-			ttn_response_t stat = ttn.poll(1, false, false);
+			port_t port = 2 + ((conf->confMsk & CM_UCNF) >> 3);
+			ttn_response_t stat = ttn.poll(port, false, false);
 			int ret = evaluateResponse(stat);
 			if (0 > ret){
 				if (pollcnt < POLL_NO-1){
@@ -590,7 +596,7 @@ LoRaMgmtSetup(const sLoRaConfiguration_t * newConf,
 
 		conf = newConf;
 	}
-//	startTestTS = millis();
+	startTestTS = millis();
 	return ret;
 }
 
@@ -606,7 +612,7 @@ LoRaMgmtGetResults(sLoRaResutls_t ** const res){
 	if (!trn)
 		return -1;
 	int ret = 0;
-//	trn->testTime = millis() - startTestTS;
+	trn->testTime = millis() - startTestTS;
 	if (conf->mode == 1){
 		trn->txFrq = conf->frequency*100000;
 		trn->lastCR = conf->codeRate;
@@ -692,8 +698,8 @@ LoRaMgmtGetEUI(const sLoRaConfiguration_t * newConf){
 	// Initialize Serial1
 	loraSerial.begin(57600);
 
-	ttn.getHardwareEui(newConf->devEui, 17);
-	return conf->devEui;
+	ttn.getHardwareEui(newConf->devEui, KEYSIZE+1);
+	return newConf->devEui;
 }
 
 /*************** MAIN CALL FUNCTIONS ********************/

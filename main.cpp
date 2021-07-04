@@ -14,7 +14,6 @@
 #define TST_MXRSLT	30			// What's the max number of test results we allow?
 #define LEDBUILDIN	PORTC7		// AVR build in led position, PORT C
 #define KEYBUFF		73			// Max total usage of key buffers = 32 + 32 + 16 + 3*\0
-#define KEYSIZE		32			// 32
 
 // Allocate initPorts in init section3 of code
 void initPorts (void) __attribute__ ((naked)) __attribute__ ((section (".init3")));
@@ -145,8 +144,8 @@ printTestResults(int count){
 
 	printPrgMem(PRTSTTTBL, PRTSTTRESULTS);
 	for (int i = 1; i<= min(TST_MXRSLT, count); i++, trn++){
-		sprintf(buf, "%02d;%02u;%07lu;%07lu;0x%02X;%lu;%02u;%02d;%03d;%03d",
-				i, //trn->testTime,
+		sprintf(buf, "%02d;%07lu;%02u;%07lu;%07lu;0x%02X;%lu;%02u;%02d;%03d;%03d",
+				i, trn->testTime,
 				trn->txCount, trn->timeTx, trn->timeRx,
 				trn->chnMsk, trn->txFrq, trn->txDR, trn->txPwr,
 				trn->rxRssi, trn->rxSnr);
@@ -393,7 +392,7 @@ runTest(){
 				break;
 			}
 		}
-		printPrgMem(PRTSTTTBL, PRTSTTSTART);
+		printPrgMem(PRTSTTTBL, PRTSTTPOLL);
 		tstate = rRun;
 		failed = 0;
 		// fall-through
@@ -733,7 +732,7 @@ void readInput() {
 
 			case 'A': // Application session key for ABP
 				readSerialS(newConf.appSKey, KEYSIZE);
-				if (strlen(newConf.appSKey) < KEYSIZE){
+				if (strlen(newConf.appSKey) != KEYSIZE){
 					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 					newConf.appSKey[0] = '\0';
 				}
@@ -741,7 +740,7 @@ void readInput() {
 
 			case 'D': // Device address for ABP
 				readSerialS(newConf.devAddr, KEYSIZE/4);
-				if (strlen(newConf.devAddr) < KEYSIZE/4){
+				if (strlen(newConf.devAddr) != KEYSIZE/4){
 					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 					newConf.devAddr[0] = '\0';
 				}
@@ -749,7 +748,7 @@ void readInput() {
 
 			case 'K': // Application Key for OTAA
 				readSerialS(newConf.appKey, KEYSIZE);
-				if (strlen(newConf.appKey) < KEYSIZE){
+				if (strlen(newConf.appKey) != KEYSIZE){
 					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 					newConf.appKey[0] = '\0';
 				}
@@ -757,7 +756,7 @@ void readInput() {
 
 			case 'E': // EUI address for OTAA
 				readSerialS(newConf.appEui, KEYSIZE/2);
-				if (strlen(newConf.appEui) < KEYSIZE/2){
+				if (strlen(newConf.appEui) != KEYSIZE/2){
 					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 					newConf.appEui[0] = '\0';
 				}
