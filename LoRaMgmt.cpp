@@ -372,7 +372,7 @@ evaluateResponse(int ret){
 	case TTN_SUCCESSFUL_RECEIVE:
 	  return 2;
 
-	case TTN_UNSUCESSFUL_RECEIVE:
+	case TTN_UNSUCCESSFUL_RECEIVE:
 		int tn;
 		tn = ttn.getStatus();
 		debugSerial.print("Status-Modem ");
@@ -472,7 +472,7 @@ LoRaMgmtPoll(){
 		if (!(conf->confMsk & CM_UCNF)){
 			{
 				enum ttn_modem_status_t stat = ttn.getStatus();
-				if (TTN_MDM_IDLE == stat){
+				if (TTN_MDM_IDLE != stat){
 					// Not yet sent/received
 					internalState = iRetry;
 					return 0;
