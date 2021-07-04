@@ -23,9 +23,10 @@ const char off[] PROGMEM = "off";
 const char accepted[] PROGMEM = "accepted";
 const char mac_tx_ok[] PROGMEM = "mac_tx_ok";
 const char mac_rx[] PROGMEM = "mac_rx";
+const char mac_err[] PROGMEM = "mac_err";
 const char rn2483[] PROGMEM = "RN2483";
 
-const char *const compare_table[] PROGMEM = {ok, on, off, accepted, mac_tx_ok, mac_rx, rn2483};
+const char *const compare_table[] PROGMEM = {ok, on, off, accepted, mac_tx_ok, mac_rx, mac_err, rn2483};
 
 #define CMP_OK 0
 #define CMP_ON 1
@@ -33,7 +34,8 @@ const char *const compare_table[] PROGMEM = {ok, on, off, accepted, mac_tx_ok, m
 #define CMP_ACCEPTED 3
 #define CMP_MAC_TX_OK 4
 #define CMP_MAC_RX 5
-#define CMP_RN2483 6
+#define CMP_MAC_ERR 6
+#define CMP_RN2483 7
 
 // CMP OK
 const char busy[] PROGMEM = "busy";
@@ -775,6 +777,39 @@ bool TheThingsNetwork::join(const char *appEui, const char *appKey, int8_t retri
   return provision(appEui, appKey) && join(retries, retryDelay) && setClass(p_lw_class);
 }
 
+ttn_response_t TheThingsNetwork::parseBytes(){
+    if (buffer[0]=='\0')
+  	  return TTN_UNSUCCESSFUL_RECEIVE;
+
+	if (pgmstrcmp(buffer, CMP_MAC_RX) == 0)
+    {
+		port_t downlinkPort = receivedPort(buffer + 7);
+		char *data = buffer + 7 + digits(downlinkPort) + 1;
+		size_t downlinkLength = strlen(data) / 2;
+		if (downlinkLength > 0)
+		{
+		  uint8_t downlink[downlinkLength];
+		  for (size_t i = 0, d = 0; i < downlinkLength; i++, d += 2)
+		  {
+			downlink[i] = TTN_HEX_PAIR_TO_BYTE(data[d], data[d + 1]);
+		  }
+		  debugPrintMessage(SUCCESS_MESSAGE, SCS_SUCCESSFUL_TRANSMISSION_RECEIVED, data);
+		  if (messageCallback)
+		  {
+			messageCallback(downlink, downlinkLength, downlinkPort);
+		  }
+		}
+		else
+		{
+		  debugPrintMessage(SUCCESS_MESSAGE, SCS_SUCCESSFUL_TRANSMISSION);
+		}
+		return TTN_SUCCESSFUL_RECEIVE;
+	}
+    // not REC but buffer FULL
+    debugPrintMessage(ERR_MESSAGE, ERR_UNEXPECTED_RESPONSE, buffer);
+    return TTN_ERROR_UNEXPECTED_RESPONSE;
+}
+
 ttn_response_t TheThingsNetwork::sendBytes(const uint8_t *payload, size_t length, port_t port, bool confirm, uint8_t sf)
 {
   if (sf != 0)
@@ -792,7 +827,7 @@ ttn_response_t TheThingsNetwork::sendBytes(const uint8_t *payload, size_t length
   // read modem response
   if (!readLine(buffer, sizeof(buffer)) && confirm) // Read response
 	  // confirmed and RX timeout -> ask to poll if necessary
-	  return TTN_UNSUCESSFUL_RECEIVE;
+	  return TTN_UNSUCCESSFUL_RECEIVE;
 
   if (afterRxCallback)
 	  afterRxCallback();
@@ -803,35 +838,11 @@ ttn_response_t TheThingsNetwork::sendBytes(const uint8_t *payload, size_t length
     debugPrintMessage(SUCCESS_MESSAGE, SCS_SUCCESSFUL_TRANSMISSION);
     return TTN_SUCCESSFUL_TRANSMISSION;
   }
+  else if (pgmstrcmp(buffer, CMP_MAC_ERR) == 0)
+	return TTN_UNSUCCESSFUL_RECEIVE;
 
   // Received downlink message?
-  if (pgmstrcmp(buffer, CMP_MAC_RX) == 0)
-  {
-    port_t downlinkPort = receivedPort(buffer + 7);
-    char *data = buffer + 7 + digits(downlinkPort) + 1;
-    size_t downlinkLength = strlen(data) / 2;
-    if (downlinkLength > 0)
-    {
-      uint8_t downlink[downlinkLength];
-      for (size_t i = 0, d = 0; i < downlinkLength; i++, d += 2)
-      {
-        downlink[i] = TTN_HEX_PAIR_TO_BYTE(data[d], data[d + 1]);
-      }
-      debugPrintMessage(SUCCESS_MESSAGE, SCS_SUCCESSFUL_TRANSMISSION_RECEIVED, data);
-      if (messageCallback)
-      {
-        messageCallback(downlink, downlinkLength, downlinkPort);
-      }
-    }
-    else
-    {
-      debugPrintMessage(SUCCESS_MESSAGE, SCS_SUCCESSFUL_TRANSMISSION);
-    }
-    return TTN_SUCCESSFUL_RECEIVE;
-  }
-
-  debugPrintMessage(ERR_MESSAGE, ERR_UNEXPECTED_RESPONSE, buffer);
-  return TTN_ERROR_UNEXPECTED_RESPONSE;
+  return parseBytes();
 }
 
 ttn_response_t TheThingsNetwork::poll(port_t port, bool confirm, bool modem)
@@ -841,53 +852,53 @@ ttn_response_t TheThingsNetwork::poll(port_t port, bool confirm, bool modem)
 
   case CLASS_A:
 	  if (!modem)
-    {
-      // Class A: send uplink and wait for rx windows
-      uint8_t payload[] = {0x00};
-      return sendBytes(payload, 1, port, confirm);
-    }
+		{
+		  // Class A: send uplink and wait for rx windows
+		  uint8_t payload[] = {0x00};
+		  return sendBytes(payload, 1, port, confirm);
+		}
+	  else
+	  {
+		  if (!readLine(buffer, sizeof(buffer)) && confirm) // Read response
+			  // confirmed and RX timeout -> ask to poll if necessary
+			  return TTN_UNSUCCESSFUL_RECEIVE;
 
+		  if (afterRxCallback)
+			  afterRxCallback();
 
-	 // case CLASS_B: // Not yet supported. Use default case.
-	 // no break
+		  // TX only?
+		  if (pgmstrcmp(buffer, CMP_MAC_TX_OK) == 0)
+		  {
+		    debugPrintMessage(SUCCESS_MESSAGE, SCS_SUCCESSFUL_TRANSMISSION);
+		    return TTN_SUCCESSFUL_TRANSMISSION;
+		  }
+		  else if (pgmstrcmp(buffer, CMP_MAC_ERR) == 0)
+			return TTN_UNSUCCESSFUL_RECEIVE;
+
+		  // Receive Message
+		  return parseBytes();
+	  }
+
 
   case CLASS_C:
-    {
-      // Class C: check rx buffer for any received data
-      memset(buffer, 0, sizeof(buffer));
+	  {
+		  // Class C: check rx buffer for any received data
+		  memset(buffer, 0, sizeof(buffer));
 
-      uint32_t timeout = this->modemStream->getTimeout();
-      this->modemStream->setTimeout(100);
-      if (this->modemStream->readBytesUntil('\n', buffer, sizeof(buffer))
-    	&& (afterRxCallback))
-    	  	  afterRxCallback();
-      this->modemStream->setTimeout(timeout);
+		  uint32_t timeout = this->modemStream->getTimeout();
+		  this->modemStream->setTimeout(100);
+		  if (this->modemStream->readBytesUntil('\n', buffer, sizeof(buffer))
+			&& (afterRxCallback))
+				  afterRxCallback();
+		  this->modemStream->setTimeout(timeout);
 
-      if (pgmstrcmp(buffer, CMP_MAC_RX) == 0)
-      {
-        port_t downlinkPort = receivedPort(buffer + 7);
-        char *data = buffer + 7 + digits(downlinkPort) + 1;
-        size_t downlinkLength = strlen(data) / 2;
-        if (downlinkLength > 0)
-        {
-          uint8_t downlink[downlinkLength];
-          for (size_t i = 0, d = 0; i < downlinkLength; i++, d += 2)
-          {
-            downlink[i] = TTN_HEX_PAIR_TO_BYTE(data[d], data[d + 1]);
-          }
-          if (messageCallback)
-          {
-            messageCallback(downlink, downlinkLength, downlinkPort);
-          }
-        }
-        return TTN_SUCCESSFUL_RECEIVE;
-      }
-      return TTN_UNSUCESSFUL_RECEIVE;
-    }
-    // no break
+		  return parseBytes();
+	  }
 
   default:
-    return TTN_UNSUCESSFUL_RECEIVE;
+  case CLASS_B: // Not yet supported. Use default case.
+	  return TTN_UNSUCCESSFUL_RECEIVE;
+
   }
 }
 
