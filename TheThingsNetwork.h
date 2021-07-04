@@ -125,7 +125,9 @@ private:
   bool waitForOk();
 
   void sendCommand(uint8_t table, uint8_t index, bool appendSpace, bool print = true);
+  bool sendMacSet(uint8_t index, uint8_t value1, unsigned long value2);
   bool sendMacSet(uint8_t index, const char *value);
+  bool sendChSet(uint8_t index, uint8_t channel, unsigned long value);
   bool sendChSet(uint8_t index, uint8_t channel, const char *value);
   bool sendJoinSet(uint8_t type);
   bool sendPayload(uint8_t mode, uint8_t port, uint8_t *payload, size_t len);

@@ -106,8 +106,9 @@ const char personalize_not_accepted[] PROGMEM = "Personalize not accepted";
 const char response_is_not_ok[] PROGMEM = "Response is not OK: ";
 const char error_key_length[] PROGMEM = "One or more keys are of invalid length.";
 const char check_configuration[] PROGMEM = "Check your coverage, keys and backend status.";
+const char no_response[] PROGMEM =  "No response from RN module.";
 
-const char *const error_msg[] PROGMEM = {invalid_sf, invalid_fp, unexpected_response, send_command_failed, join_failed, join_not_accepted, personalize_not_accepted, response_is_not_ok, error_key_length, check_configuration};
+const char *const error_msg[] PROGMEM = {invalid_sf, invalid_fp, unexpected_response, send_command_failed, join_failed, join_not_accepted, personalize_not_accepted, response_is_not_ok, error_key_length, check_configuration, no_response};
 
 #define ERR_INVALID_SF 0
 #define ERR_INVALID_FP 1
@@ -119,6 +120,7 @@ const char *const error_msg[] PROGMEM = {invalid_sf, invalid_fp, unexpected_resp
 #define ERR_RESPONSE_IS_NOT_OK 7
 #define ERR_KEY_LENGTH 8
 #define ERR_CHECK_CONFIGURATION 9
+#define ERR_NO_RESPONSE 10
 
 const char personalize_accepted[] PROGMEM = "Personalize accepted. Status: ";
 const char join_accepted[] PROGMEM = "Join accepted. Status: ";
@@ -554,7 +556,7 @@ size_t TheThingsNetwork::readLine(char *buffer, size_t size, uint8_t attempts)
   if (!read)
   { // If attempts is activated return 0 and set RN state marker
     this->needsHardReset = true; // Inform the application about the radio module is not responsive.
-    debugPrintLn("No response from RN module.");
+    debugPrintMessage(ERR_MESSAGE, ERR_NO_RESPONSE);
     return 0;
   }
   buffer[read - 1] = '\0'; // set \r to \0
@@ -909,7 +911,7 @@ void TheThingsNetwork::showStatus()
 
 void TheThingsNetwork::configureEU868()
 {
-  sendMacSet(MAC_RX2, "3 869525000");
+  sendMacSet(MAC_RX2, 3, 869525000);
   sendChSet(MAC_CHANNEL_DRRANGE, 1, "0 6");
 
   char buf[10];
@@ -917,7 +919,7 @@ void TheThingsNetwork::configureEU868()
   uint8_t ch;
   for (ch = 0; ch < 8; ch++)
   {
-    sendChSet(MAC_CHANNEL_DCYCLE, ch, "799"); // 1.25%
+    sendChSet(MAC_CHANNEL_DCYCLE, ch, 799); // 1.25%
     if (ch > 2) 							  // chn 0-2 are default
     {
       sprintf(buf, "%lu", freq);
@@ -985,14 +987,14 @@ void TheThingsNetwork::configureAS920_923()
    * CH1 = 923.4MHz
    */
   sendMacSet(MAC_ADR, "off"); // TODO: remove when ADR is implemented for this plan
-  sendMacSet(MAC_RX2, "2 923200000");
+  sendMacSet(MAC_RX2, 2, 923200000);
 
   char buf[10];
   uint32_t freq = 922000000;
   uint8_t ch;
   for (ch = 0; ch < 8; ch++)
   {
-    sendChSet(MAC_CHANNEL_DCYCLE, ch, "799");
+    sendChSet(MAC_CHANNEL_DCYCLE, ch, 799);
     if (ch > 1)
     {
       sprintf(buf, "%lu", freq);
@@ -1003,8 +1005,8 @@ void TheThingsNetwork::configureAS920_923()
     }
   }
   // TODO: SF7BW250/DR6 channel, not properly supported by RN2903AS yet
-  //sendChSet(MAC_CHANNEL_DCYCLE, 8, "799");
-  //sendChSet(MAC_CHANNEL_FREQ, 8, "922100000");
+  //sendChSet(MAC_CHANNEL_DCYCLE, 8, 799);
+  //sendChSet(MAC_CHANNEL_FREQ, 8, 922100000);
   //sendChSet(MAC_CHANNEL_DRRANGE, 8, "6 6");
   //sendChSet(MAC_CHANNEL_STATUS, 8, "on");
   // TODO: Add FSK channel on 921800000
@@ -1018,14 +1020,14 @@ void TheThingsNetwork::configureAS923_925()
    * CH1 = 923.4MHz
    */
   sendMacSet(MAC_ADR, "off"); // TODO: remove when ADR is implemented for this plan
-  sendMacSet(MAC_RX2, "2 923200000");
+  sendMacSet(MAC_RX2, 2, 923200000);
 
   char buf[10];
   uint32_t freq = 923600000;
   uint8_t ch;
   for (ch = 0; ch < 8; ch++)
   {
-    sendChSet(MAC_CHANNEL_DCYCLE, ch, "799");
+    sendChSet(MAC_CHANNEL_DCYCLE, ch, 799);
     if (ch > 1)
     {
       sprintf(buf, "%lu", freq);
@@ -1036,8 +1038,8 @@ void TheThingsNetwork::configureAS923_925()
     }
   }
   // TODO: SF7BW250/DR6 channel, not properly supported by RN2903AS yet
-  //sendChSet(MAC_CHANNEL_DCYCLE, 8, "799");
-  //sendChSet(MAC_CHANNEL_FREQ, 8, "924500000");
+  //sendChSet(MAC_CHANNEL_DCYCLE, 8, 799);
+  //sendChSet(MAC_CHANNEL_FREQ, 8, 924500000);
   //sendChSet(MAC_CHANNEL_DRRANGE, 8, "6 6");
   //sendChSet(MAC_CHANNEL_STATUS, 8, "on");
   // TODO: Add FSK channel on 924800000
@@ -1047,7 +1049,7 @@ void TheThingsNetwork::configureAS923_925()
 void TheThingsNetwork::configureKR920_923()
 {
   sendMacSet(MAC_ADR, "off"); // TODO: remove when ADR is implemented for this plan
-  sendMacSet(MAC_RX2, "0 921900000"); // KR still uses SF12 for now. Might change to SF9 later.
+  sendMacSet(MAC_RX2, 0, 921900000); // KR still uses SF12 for now. Might change to SF9 later.
 
   //disable two default LoRaWAN channels
   sendChSet(MAC_CHANNEL_STATUS, 0, "off");
@@ -1058,7 +1060,7 @@ void TheThingsNetwork::configureKR920_923()
   uint8_t ch;
   for (ch = 2; ch < 9; ch++)
   {
-    sendChSet(MAC_CHANNEL_DCYCLE, ch, "799");
+    sendChSet(MAC_CHANNEL_DCYCLE, ch, 799);
     sprintf(buf, "%lu", freq);
     sendChSet(MAC_CHANNEL_FREQ, ch, buf);
     sendChSet(MAC_CHANNEL_DRRANGE, ch, "0 5");
@@ -1071,7 +1073,7 @@ void TheThingsNetwork::configureKR920_923()
 void TheThingsNetwork::configureIN865_867()
 {
   sendMacSet(MAC_ADR, "off"); // TODO: remove when ADR is implemented for this plan
-  sendMacSet(MAC_RX2, "2 866550000"); // SF10
+  sendMacSet(MAC_RX2, 2, 866550000); // SF10
 
   // Disable the three default LoRaWAN channels
   sendChSet(MAC_CHANNEL_STATUS, 0, "off");
@@ -1079,20 +1081,20 @@ void TheThingsNetwork::configureIN865_867()
   sendChSet(MAC_CHANNEL_STATUS, 2, "off");
 
   // Channel 3
-  sendChSet(MAC_CHANNEL_DCYCLE, 3, "299");
-  sendChSet(MAC_CHANNEL_FREQ, 3, "865062500");
+  sendChSet(MAC_CHANNEL_DCYCLE, 3, 299);
+  sendChSet(MAC_CHANNEL_FREQ, 3, 865062500);
   sendChSet(MAC_CHANNEL_DRRANGE, 3, "0 5");
   sendChSet(MAC_CHANNEL_STATUS, 3, "on");
 
   // Channel 4
-  sendChSet(MAC_CHANNEL_DCYCLE, 4, "299");
-  sendChSet(MAC_CHANNEL_FREQ, 4, "865402500");
+  sendChSet(MAC_CHANNEL_DCYCLE, 4, 299);
+  sendChSet(MAC_CHANNEL_FREQ, 4, 865402500);
   sendChSet(MAC_CHANNEL_DRRANGE, 4, "0 5");
   sendChSet(MAC_CHANNEL_STATUS, 4, "on");
 
   // Channel 5
-  sendChSet(MAC_CHANNEL_DCYCLE, 5, "299");
-  sendChSet(MAC_CHANNEL_FREQ, 5, "865985000");
+  sendChSet(MAC_CHANNEL_DCYCLE, 5, 299);
+  sendChSet(MAC_CHANNEL_FREQ, 5, 865985000);
   sendChSet(MAC_CHANNEL_DRRANGE, 5, "0 5");
   sendChSet(MAC_CHANNEL_STATUS, 5, "on");
 
@@ -1273,6 +1275,13 @@ void TheThingsNetwork::sendCommand(uint8_t table, uint8_t index, bool appendSpac
   }
 }
 
+bool TheThingsNetwork::sendMacSet(uint8_t index, uint8_t value1, unsigned long value2)
+{
+	char buf[15];
+	sprintf(buf, "%u %lu", value1, value2);
+	return sendMacSet(index, buf);
+}
+
 bool TheThingsNetwork::sendMacSet(uint8_t index, const char *value)
 {
   clearReadBuffer();
@@ -1299,6 +1308,13 @@ bool TheThingsNetwork::waitForOk()
     return false;
   }
   return true;
+}
+
+bool TheThingsNetwork::sendChSet(uint8_t index, uint8_t channel, unsigned long value)
+{
+	char buf[11];
+	sprintf(buf, "%lu", value);
+	return sendChSet(index, channel, buf);
 }
 
 bool TheThingsNetwork::sendChSet(uint8_t index, uint8_t channel, const char *value)
