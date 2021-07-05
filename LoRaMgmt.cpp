@@ -194,7 +194,7 @@ computeAirTime(uint8_t dataLen, uint8_t dataRate){
  * Return:	  - return 0 if OK, -1 if error
  */
 static int
-setTxPwr(uint8_t mode, uint8_t txPwr){
+setTxPwr( __attribute__((unused)) uint8_t mode, uint8_t txPwr){
 
 	return ttn.setPowerIndex(txPwr)? 0 : -1;
 }
@@ -225,7 +225,7 @@ getChannels(uint16_t * chnMsk){
  * Return:	  - return 0 if OK, -1 if error
  */
 static int
-setChannelsCnf(const sLoRaConfiguration_t * newConf, uint8_t drMin, uint8_t drMax){
+setChannelsCnf(const sLoRaConfiguration_t * const newConf, uint8_t drMin, uint8_t drMax){
 
   bool retVal = true;
   long frq = 0;
@@ -292,7 +292,7 @@ setChannels(uint16_t chnMsk, uint8_t dataRate) {
  * Return:	  returns 0 if successful, else -1
  */
 static int
-loRaJoin(const sLoRaConfiguration_t * newConf){ // TODO: this resets ADR -> set here !
+loRaJoin(const sLoRaConfiguration_t * const newConf){ // TODO: this resets ADR -> set here !
 	if (newConf->confMsk & CM_OTAA)
 		return !ttn.join(newConf->appEui, newConf->appKey) * -1;
 	else
@@ -307,7 +307,7 @@ loRaJoin(const sLoRaConfiguration_t * newConf){ // TODO: this resets ADR -> set 
  * Return:	  returns 0 if successful, else -1
  */
 static int
-setupLoRaWan(const sLoRaConfiguration_t * newConf){
+setupLoRaWan(const sLoRaConfiguration_t * const newConf){
 
 	installTimer(); // setup timer1 registers
 
@@ -349,7 +349,7 @@ setupLoRaWan(const sLoRaConfiguration_t * newConf){
  * Return:	  - return 0 if OK, -1 if error
  */
 static int
-setupDumb(const sLoRaConfiguration_t * newConf){
+setupDumb( __attribute__((unused)) const sLoRaConfiguration_t * newConf){
 
 	return 0;
 }
@@ -425,7 +425,7 @@ int LoRaMgmtSend(){
 			// initialize random seed with dataLen as value
 			// keep consistency among tests, but differs with diff len
 			unsigned long rnd_contex = conf->dataLen;	// pseudo-random generator context (for reentrant)
-			byte genbuf[MAXLORALEN];				// buffer for generated message
+			byte genbuf[MAXLORALEN];					// buffer for generated message
 
 			for (int i=0; i < conf->dataLen; i++)
 				genbuf[i]=(byte)(random_r(&rnd_contex) % 255);
@@ -478,8 +478,7 @@ LoRaMgmtPoll(){
 				return 0;
 
 			// set modem to true to read only modem.
-			port_t port = 2 + ((conf->confMsk & CM_UCNF) >> 3);
-			ttn_response_t stat = ttn.poll(port, true, true);
+			ttn_response_t stat = ttn.poll(2, true, true);		// port 2 conf
 			int ret = evaluateResponse(stat);
 
 			return (TTN_SUCCESSFUL_RECEIVE == ret
@@ -489,8 +488,7 @@ LoRaMgmtPoll(){
 			internalState = iPoll;
 
 			// set modem to true to read only modem.
-			port_t port = 2 + ((conf->confMsk & CM_UCNF) >> 3);
-			ttn_response_t stat = ttn.poll(port, false, false);
+			ttn_response_t stat = ttn.poll(3, false, false);	// port 3 unconf
 			int ret = evaluateResponse(stat);
 			if (0 > ret){
 				if (pollcnt < POLL_NO-1){
