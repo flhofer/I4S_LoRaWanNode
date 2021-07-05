@@ -13,7 +13,7 @@
 
 #define TST_MXRSLT	30			// What's the max number of test results we allow?
 #define LEDBUILDIN	PORTC7		// AVR build in led position, PORT C
-#define KEYBUFF		73			// Max total usage of key buffers = 32 + 32 + 16 + 3*\0
+#define KEYBUFF		83			// Max total usage of key buffers = 32 + 32 + 16 + 3*\0
 
 // Allocate initPorts in init section3 of code
 void initPorts (void) __attribute__ ((naked)) __attribute__ ((section (".init3")));

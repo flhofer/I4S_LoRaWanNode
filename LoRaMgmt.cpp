@@ -508,7 +508,7 @@ LoRaMgmtPoll(){
 			trn->txCount++;
 
 			// read receive buffer
-			if (ret == TTN_SUCCESSFUL_RECEIVE){
+			if (TTN_SUCCESSFUL_RECEIVE == ret){
 				// message received
 				return 1;
 			}

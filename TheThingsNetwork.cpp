@@ -624,7 +624,7 @@ void TheThingsNetwork::reset(bool adr)
 
   readResponse(SYS_TABLE, SYS_TABLE, SYS_GET_HWEUI, buffer, sizeof(buffer));
   sendMacSet(MAC_DEVEUI, buffer);
-  this->setADR(adr);
+  setADR(adr);
   this->needsHardReset = false;
 }
 
