@@ -930,16 +930,18 @@ void TheThingsNetwork::configureEU868()
   uint8_t ch;
   for (ch = 0; ch < 8; ch++)
   {
-    sendChSet(MAC_CHANNEL_DCYCLE, ch, 799); // 0.125%
     if (ch > 2) 							  // chn 0-2 are default
     {
       sprintf(buf, "%lu", freq);
       sendChSet(MAC_CHANNEL_FREQ, ch, buf);
       sendChSet(MAC_CHANNEL_DRRANGE, ch, "0 5");
+      sendChSet(MAC_CHANNEL_DCYCLE, ch, 4999); // 5*0.02% ETSI band G2, total 0.1%
       sendChSet(MAC_CHANNEL_STATUS, ch, "on");
       freq = freq + 200000;
     }
-  }
+    else
+    	sendChSet(MAC_CHANNEL_DCYCLE, ch, 299); // 3*0.33% ETSI band G1, total 1%
+}
   sendMacSet(MAC_PWRIDX, TTN_PWRIDX_EU868);
 }
 
@@ -1191,7 +1193,7 @@ bool TheThingsNetwork::setChannelDCycle (uint8_t ch, float dcycle){ // in percen
 
   char buf[6]; // number 99999
   if (0.0 == dcycle)
-	  (void)sprintf(buf, "%u", 65535);
+	  (void)sprintf(buf, "%u", 65535u);
   else
 	  (void)sprintf(buf, "%u", (uint16_t)((100.0/dcycle) - 1));
 
