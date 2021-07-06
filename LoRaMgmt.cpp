@@ -182,7 +182,7 @@ computeAirTime(uint8_t dataLen, uint8_t dataRate){
 
 	dataLen+=MACHDRFTR;
 
-	return dataLen * 1000 / dataRates[MAX(12-dataRate, 0)];
+	return dataLen * 8000 / dataRates[MAX(12-dataRate, 0)];
 }
 
 /*
