@@ -251,10 +251,10 @@ setChannelsCnf(const sLoRaConfiguration_t * const newConf, uint8_t drMin, uint8_
 			  uint8_t bits;
 			  if (i<8)
 				  // Channels 4-8 common 0.1 % band G2
-				  uint8_t bits = countSetBits(newConf->chnMsk & 0xF8);
+				  bits = countSetBits(newConf->chnMsk & 0xF8);
 			  else
 				  // Channels 9-16 common 0.1 % band G
-				  uint8_t bits = countSetBits(newConf->chnMsk & 0xFF00);
+				  bits = countSetBits(newConf->chnMsk & 0xFF00);
 
 			  retVal &= ttn.setChannelDCycle((uint8_t)i, 0.1/(float)bits);
 		  }
