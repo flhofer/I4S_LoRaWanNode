@@ -367,28 +367,21 @@ evaluateResponse(int ret){
 
 	  // TX only
 	case TTN_SUCCESSFUL_TRANSMISSION:
-	  return 1;
-
 	  // ACK receive ok
 	case TTN_SUCCESSFUL_RECEIVE:
-	  return 2;
+	  return ret;
 
 	case TTN_UNSUCCESSFUL_RECEIVE:
-		int tn;
-		tn = ttn.getStatus();
-		debugSerial.print("Status-Modem ");
-		debugSerial.println(tn);
-		if (tn == TTN_MDM_IDLE)
-			return 0; // Listening but Nothing left to send?
+		if (TTN_MDM_IDLE == ttn.getStatus())
+			return TTN_MDM_IDLE; // All done, modem idle, however no ACK
 		else
 			return TTN_ERR_BUSY; // Maybe still outstanding response
 
 	default:
 	case TTN_ERROR_UNEXPECTED_RESPONSE:
-	  debugSerial.println("Unable to send payload!\n");
 	  return -999;
 
-	case TTN_ERROR_SEND_COMMAND_FAILED:
+	case TTN_ERROR_SEND_COMMAND_FAILED: // -1 = busy... -12 = err
 	  return (int)ttn.getLastError();
 	}
 }
@@ -482,7 +475,7 @@ LoRaMgmtPoll(){
 			int ret = evaluateResponse(stat);
 
 			return (TTN_SUCCESSFUL_RECEIVE == ret
-					|| TTN_SUCCESSFUL_TRANSMISSION == ret) ? 1 : -1;
+					|| TTN_SUCCESSFUL_TRANSMISSION == ret) ? 2 : -1; // Stop once received
 		}
 		else{
 			internalState = iPoll;
