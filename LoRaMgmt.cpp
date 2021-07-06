@@ -431,7 +431,7 @@ int LoRaMgmtSend(){
 		if (ret < 0){
 			if (TTN_ERR_BUSY == ret ){ // no channel available -> pause for free-delay / active channels
 				internalState = iBusy;
-				return 0;
+				return !(conf->confMsk & CM_UCNF); // Cnf -> goto poll, Uncnf stay here
 			}
 			else if (TTN_ERR_NFRCHN == ret){ // MKR does not have it
 				internalState = iChnWait;
