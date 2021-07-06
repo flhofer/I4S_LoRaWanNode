@@ -930,7 +930,7 @@ void TheThingsNetwork::configureEU868()
   uint8_t ch;
   for (ch = 0; ch < 8; ch++)
   {
-    sendChSet(MAC_CHANNEL_DCYCLE, ch, 799); // 1.25%
+    sendChSet(MAC_CHANNEL_DCYCLE, ch, 799); // 0.125%
     if (ch > 2) 							  // chn 0-2 are default
     {
       sprintf(buf, "%lu", freq);
@@ -1186,11 +1186,14 @@ bool TheThingsNetwork::setChannelStatus (uint8_t ch, bool status){
 }
 
 bool TheThingsNetwork::setChannelDCycle (uint8_t ch, float dcycle){ // in percent
-  if (ch > 15 || dcycle > 100.0 || dcycle < 0.01)
+  if (ch > 15 || dcycle > 100.0 || dcycle < 0.0)
 	return false;
 
   char buf[6]; // number 99999
-  (void)sprintf(buf, "%u", (uint16_t)((100.0/dcycle) - 1));
+  if (0.0 == dcycle)
+	  (void)sprintf(buf, "%u", 65535);
+  else
+	  (void)sprintf(buf, "%u", (uint16_t)((100.0/dcycle) - 1));
 
   return sendChSet(MAC_CHANNEL_DCYCLE, ch, buf);
 }
