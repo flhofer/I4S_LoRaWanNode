@@ -475,13 +475,12 @@ LoRaMgmtPoll(){
 		if (!(conf->confMsk & CM_UCNF)){
 			internalState = iRetry;
 
-			if (TTN_MDM_IDLE != ttn.getStatus())
-				// Not yet sent/received .. error?
-				return 0;
-
 			// set modem to true to read only modem.
 			ttn_response_t stat = ttn.poll(2, true, true);		// port 2 conf
 			int ret = evaluateResponse(stat);
+
+			if (ret == TTN_ERR_BUSY) // Not yet finished with retries
+				return 0;
 
 			return (TTN_SUCCESSFUL_RECEIVE == ret
 					|| TTN_SUCCESSFUL_TRANSMISSION == ret) ? 2 : -1; // Stop once received
