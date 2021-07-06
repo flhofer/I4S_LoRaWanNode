@@ -171,7 +171,7 @@ static void onAfterRx(){
  * computeAirTime:
  *
  * Arguments: - payload length
- * 			  - data rate (7-12)
+ * 			  - data rate (0-5)
  *
  * Return:	  - expected airTime in ms
  */
@@ -182,7 +182,7 @@ computeAirTime(uint8_t dataLen, uint8_t dataRate){
 
 	dataLen+=MACHDRFTR;
 
-	return dataLen * 8000 / dataRates[MAX(12-dataRate, 0)];
+	return dataLen * 8000 / dataRates[dataRate];
 }
 
 /*
