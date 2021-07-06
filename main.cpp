@@ -370,6 +370,7 @@ runTest(){
 		// @suppress("No break at end of case")
 
 	case rStart:
+		failed = 0;
 
 		if (testReq >= qStop ){
 			tstate = rStop;
@@ -394,7 +395,6 @@ runTest(){
 		}
 		printPrgMem(PRTSTTTBL, PRTSTTPOLL);
 		tstate = rRun;
-		failed = 0;
 		// fall-through
 		// @suppress("No break at end of case")
 
@@ -414,10 +414,6 @@ runTest(){
 		}
 		else if (ret == 0)
 			break;
-		else if (ret == 2){
-			tstate = rEvaluate;
-			break;
-		}
 
 		tstate = rStop;
 		printPrgMem(PRTSTTTBL, PRTSTTSTOP);
