@@ -357,11 +357,6 @@ uint8_t receivedPort(const char *s)
 TheThingsNetwork::TheThingsNetwork(Stream &modemStream, Stream &debugStream, ttn_fp_t fp, uint8_t sf, uint8_t fsb)
 {
   this->debugStream = &debugStream;
-  TheThingsNetwork(modemStream, fp, sf, fsb);
-}
-
-TheThingsNetwork::TheThingsNetwork(Stream &modemStream, ttn_fp_t fp, uint8_t sf, uint8_t fsb)
-{
   this->modemStream = &modemStream;
   this->modemStream->setTimeout(TTN_DEFAULT_TOUT);
   this->fp = fp;
