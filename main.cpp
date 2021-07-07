@@ -425,8 +425,9 @@ runTest(){
 
 	case rStop:
 
-		// unsuccessful and retries left?
-		if (failed && (newConf.repeatSend > retries) && testReq < qStop){
+		// unsuccessful and retries left? or retry disabled == until stop
+		if (((failed && retries < newConf.repeatSend)
+				|| 0 == newConf.repeatSend)	&& testReq < qStop){
 			if (LoRaMgmtUpdt()){
 				tstate = rStart;
 				printPrgMem(PRTSTTTBL, PRTSTTRETRY);
@@ -608,7 +609,7 @@ void readInput() {
 
 		case 'r': // read repeat count for LoRaWan packets
 			newConf.repeatSend = (uint8_t)readSerialD();
-			if (newConf.repeatSend == 0 || newConf.repeatSend > TST_MXRSLT){
+			if (newConf.repeatSend > 100){
 				printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 				newConf.repeatSend = 5; // set to default
 			}
