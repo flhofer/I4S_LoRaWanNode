@@ -20,7 +20,7 @@
 #define RESFREEDEL	40000		// ~resource freeing delay ETSI requirement air-time reduction
 #define MACHDRFTR	13			// Length in bytes of MACHDR + FHDR + FPORT + MIC
 
-#define MAX(a, b)	(a > b) ? a : b
+#define MIN(a, b)	(a < b) ? a : b
 
 // Modem constructor
 static TheThingsNetwork ttn(loraSerial, debugSerial,
@@ -182,7 +182,7 @@ computeAirTime(uint8_t dataLen, uint8_t dataRate){
 
 	dataLen+=MACHDRFTR;
 
-	return dataLen * 8000 / dataRates[dataRate];
+	return (uint32_t)dataLen * 8000l / dataRates[MIN(dataRate, 5)];
 }
 
 /*
