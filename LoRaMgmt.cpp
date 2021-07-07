@@ -449,13 +449,16 @@ int LoRaMgmtSend(){
 			return ret;
 		}
 
-		internalState = iPoll;
 		pollcnt = 0;
 		trn->txCount++;
 		if ((ret == TTN_SUCCESSFUL_RECEIVE
-			|| ret == TTN_SUCCESSFUL_TRANSMISSION) && !(conf->confMsk & CM_UCNF))
+			|| ret == TTN_SUCCESSFUL_TRANSMISSION) && !(conf->confMsk & CM_UCNF)){
 			// message ACK received
+			internalState = iIdle;
 			return 2;
+		}
+
+		internalState = iBusy;
 		return 1;
 	}
 	return 0;	// else busy
@@ -482,6 +485,7 @@ LoRaMgmtPoll(){
 			if (ret == TTN_ERR_BUSY) // Not yet finished with retries
 				return 0;
 
+			internalState = iIdle;
 			return (TTN_SUCCESSFUL_RECEIVE == ret
 					|| TTN_SUCCESSFUL_TRANSMISSION == ret) ? 2 : -1; // Stop once received
 		}
@@ -511,6 +515,7 @@ LoRaMgmtPoll(){
 			// read receive buffer
 			if (TTN_SUCCESSFUL_RECEIVE == ret){
 				// message received
+				internalState = iIdle;
 				return 1;
 			}
 			else {
@@ -730,8 +735,7 @@ LoRaMgmtMain (){
 		break;
 	case iBusy:	// Duty cycle = 1% chn [1-3], 0.1% chn [4-8]  pause = T/dc - T
 		startSleepTS = millis();
-		trn->txDR = ttn.getDR();
-		sleepMillis = rxWindow1 + rxWindow2 + computeAirTime(conf->dataLen, trn->txDR);
+		sleepMillis = rxWindow1; // Min send time
 		internalState = iSleep;
 		break;
 	case iChnWait:
