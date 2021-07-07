@@ -91,7 +91,7 @@ class TheThingsNetwork
 {
 private:
   Stream *modemStream;
-  Stream *debugStream;
+  Stream *debugStream = NULL;
   ttn_fp_t fp;
   uint8_t sf;
   uint8_t fsb;
@@ -137,6 +137,7 @@ private:
 public:
   bool needsHardReset = false;
 
+  TheThingsNetwork(Stream &modemStream, ttn_fp_t fp, uint8_t sf = TTN_DEFAULT_SF, uint8_t fsb = TTN_DEFAULT_FSB);
   TheThingsNetwork(Stream &modemStream, Stream &debugStream, ttn_fp_t fp, uint8_t sf = TTN_DEFAULT_SF, uint8_t fsb = TTN_DEFAULT_FSB);
   void reset(bool adr = true);
   void resetHard(uint8_t resetPin);
