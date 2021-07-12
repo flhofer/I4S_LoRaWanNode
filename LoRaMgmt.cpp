@@ -278,7 +278,7 @@ setChannels(uint16_t chnMsk, uint8_t dataRate) {
 	bool retVal = true;
 
 	for (int i=0; i<LORACHNMAX; i++, chnMsk >>=1){
-	  retVal &= ttn.setChannelStatus((uint8_t)i, (bool)chnMsk & 0x01);
+	  retVal &= ttn.setChannelStatus((uint8_t)i, (bool)(chnMsk & 0x01));
 	}
 
 	if (dataRate == 255){
