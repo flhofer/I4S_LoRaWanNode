@@ -163,8 +163,6 @@ onAfterTx(){
 static void onAfterRx(){
 	trn->timeToRx = getTimer();
 	trn->timeRx = trn->timeToRx - trn->timeTx - rxWindow1*1000;
-	if (trn->timeRx > rxWindow2*1000)
-		trn->timeRx -= rxWindow2*1000;
 }
 
 /*
