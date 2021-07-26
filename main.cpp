@@ -600,8 +600,7 @@ void readInput() {
 
 		case 'l': // read data length
 			newConf.dataLen = (uint8_t)readSerialD();
-			if ((newConf.dataLen > 242 && newConf.mode >=2) // Maximum LoRaWan application payload
-					|| newConf.dataLen == 0 ){
+			if (newConf.dataLen > 242 && newConf.mode >=2){ // Maximum LoRaWan application payload
 				printPrgMem(PRTSTTTBL, PRTSTTINVALID);
 				newConf.dataLen = 1; // set to default
 			}
