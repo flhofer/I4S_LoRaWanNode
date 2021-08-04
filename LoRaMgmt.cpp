@@ -31,8 +31,6 @@ static int	pollcnt;			// un-conf poll retries
 static uint32_t startSleepTS;	// relative MC time of Sleep begin
 static uint32_t startTestTS;	// relative MC time for test start
 static uint32_t sleepMillis;	// Time to remain in sleep
-static uint32_t rxWindow1 = 1000; // pause duration in ms between tx and rx TODO: get parameter
-static uint32_t rxWindow2 = 1000; // pause duration in ms between rx1 and rx2 TODO: get parameter
 
 static const sLoRaConfiguration_t * conf;	// Pointer to configuration entry
 static sLoRaResutls_t * trn;				// Pointer to actual entry
@@ -162,7 +160,7 @@ onAfterTx(){
  */
 static void onAfterRx(){
 	trn->timeToRx = getTimer();
-	trn->timeRx = trn->timeToRx - trn->timeTx - rxWindow1*1000;
+	trn->timeRx = trn->timeToRx - trn->timeTx - ((uint32_t)conf->rxWindow1)*1000;
 }
 
 /*
@@ -728,12 +726,12 @@ LoRaMgmtMain (){
 	case iPoll:
 		startSleepTS = millis();
 		trn->txDR = ttn.getDR();
-		sleepMillis = rxWindow1 + rxWindow2 + computeAirTime(conf->dataLen, trn->txDR) + 1000; // e.g. ACK lost, = 2+-1s (random)
+		sleepMillis =  (uint32_t)conf->rxWindow2 + computeAirTime(conf->dataLen, trn->txDR) + 1000; // e.g. ACK lost, = 2+-1s (random)
 		internalState = iSleep;
 		break;
 	case iBusy:	// Duty cycle = 1% chn [1-3], 0.1% chn [4-8]  pause = T/dc - T
 		startSleepTS = millis();
-		sleepMillis = rxWindow1; // Min send time
+		sleepMillis = (uint32_t)conf->rxWindow1; // Min send time
 		internalState = iSleep;
 		break;
 	case iChnWait:
