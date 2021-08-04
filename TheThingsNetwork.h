@@ -181,5 +181,7 @@ public:
   bool setPowerIndex(uint8_t idx);
   bool setDR(uint8_t dr);
   bool setADR(bool adr);
+  bool setRX1Delay(uint16_t delay);
+  bool setRX2Delay(uint16_t delay);
 };
 #endif

@@ -1250,6 +1250,18 @@ bool TheThingsNetwork::setSF(uint8_t sf)
   return sendMacSet(MAC_DR, s);
 }
 
+bool TheThingsNetwork::setRX1Delay(uint16_t delay){
+	  char buf[6];
+	  sprintf(buf, "%u",delay);
+	  return sendMacSet(MAC_RXDELAY1, buf);
+}
+
+bool TheThingsNetwork::setRX2Delay(uint16_t delay){
+	  char buf[6];
+	  sprintf(buf, "%u",delay);
+	  return sendMacSet(MAC_RXDELAY2, buf);
+}
+
 void TheThingsNetwork::sendCommand(uint8_t table, uint8_t index, bool appendSpace, bool print)
 {
   char command[100];
