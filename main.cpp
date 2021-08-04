@@ -775,6 +775,23 @@ void readInput() {
 					newConf.dataRate = 5; // set to default
 				}
 				break;
+
+			case 'x': // read window delay RX1
+				newConf.rxWindow1 = readSerialD();
+				if (newConf.rxWindow1 < 1000 && newConf.rxWindow1 > 15000){ // test range, min 1 sec .. defaults
+					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
+					newConf.rxWindow1 = 1000; // set to default
+				}
+				break;
+
+			case 'y': // read window delay RX2
+				newConf.rxWindow2 = readSerialD();
+				if (newConf.rxWindow2 < 1000 + newConf.rxWindow1 && newConf.rxWindow2 > 15000 + newConf.rxWindow1){ // test range, min 2 sec .. defaults
+					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
+					newConf.rxWindow2 = 2000; // set to default
+				}
+				break;
+
 			default:
 				printPrgMem(PRTSTTTBL, PRTSTTUNKNOWN);
 				debugSerial.println(A);
