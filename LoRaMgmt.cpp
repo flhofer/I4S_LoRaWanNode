@@ -341,6 +341,8 @@ setupLoRaWan(const sLoRaConfiguration_t * const newConf){
 	if (!(newConf->confMsk & CM_OTAA)){
 		// set to LorIoT standard RX, DR
 		ret |= !ttn.setRx2Channel(869525000, 0);
+		ret |= !ttn.setRX1Delay(newConf->rxWindow1);
+		ret |= !ttn.setRX2Delay(newConf->rxWindow2);
 	}	// set to LorIoT standard RX, DR = 0, not default
 
 	return ret *-1;
