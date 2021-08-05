@@ -656,146 +656,153 @@ void readInput() {
 		default:
 			intp = 1;
 		}
-		if (intp && newConf.mode == 1)
-			switch (A){
-			case 'f': //TODO: this is limiting to EU868
-				newConf.frequency = (long)readSerialD(); // TODO: 10 vs 100kHz
-				if (newConf.frequency < 8630 || newConf.frequency > 8700 ){
-					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
-					newConf.frequency = 8683; // set to default
-				}
-				break;
+		if (intp){
+			if (newConf.mode == 1){
+				switch (A){
+				case 'f': //TODO: this is limiting to EU868
+					newConf.frequency = (long)readSerialD(); // TODO: 10 vs 100kHz
+					if (newConf.frequency < 8630 || newConf.frequency > 8700 ){
+						printPrgMem(PRTSTTTBL, PRTSTTINVALID);
+						newConf.frequency = 8683; // set to default
+					}
+					break;
 
-			case 'b': // read bandwidth
-				newConf.bandWidth = (uint8_t)readSerialD();
-				if (!(newConf.bandWidth == 250 ||
-						newConf.bandWidth == 125 ||
-						newConf.bandWidth == 62 ||
-						newConf.bandWidth == 41 ||
-						newConf.bandWidth == 31 ||
-						newConf.bandWidth == 20 ||
-						newConf.bandWidth == 15 ||
-						newConf.bandWidth == 10 )){
-					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
-					newConf.bandWidth = 250; // set to default
-				}
-				break;
+				case 'b': // read bandwidth
+					newConf.bandWidth = (uint8_t)readSerialD();
+					if (!(newConf.bandWidth == 250 ||
+							newConf.bandWidth == 125 ||
+							newConf.bandWidth == 62 ||
+							newConf.bandWidth == 41 ||
+							newConf.bandWidth == 31 ||
+							newConf.bandWidth == 20 ||
+							newConf.bandWidth == 15 ||
+							newConf.bandWidth == 10 )){
+						printPrgMem(PRTSTTTBL, PRTSTTINVALID);
+						newConf.bandWidth = 250; // set to default
+					}
+					break;
 
-			case 'c': // read code rate
-				newConf.codeRate = (uint8_t)readSerialD();
-				if (newConf.codeRate < 5 || newConf.codeRate > 8){
-					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
-					newConf.codeRate = 8; // set to default
-				}
-				break;
+				case 'c': // read code rate
+					newConf.codeRate = (uint8_t)readSerialD();
+					if (newConf.codeRate < 5 || newConf.codeRate > 8){
+						printPrgMem(PRTSTTTBL, PRTSTTINVALID);
+						newConf.codeRate = 8; // set to default
+					}
+					break;
 
-			case 's': // read spread factor
-				newConf.spreadFactor = (uint8_t)readSerialD();
-				if (newConf.spreadFactor < 7 || newConf.spreadFactor > 12){
-					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
-					newConf.spreadFactor = 12; // set to default
+				case 's': // read spread factor
+					newConf.spreadFactor = (uint8_t)readSerialD();
+					if (newConf.spreadFactor < 7 || newConf.spreadFactor > 12){
+						printPrgMem(PRTSTTTBL, PRTSTTINVALID);
+						newConf.spreadFactor = 12; // set to default
+					}
+					break;
+				default:
+					printPrgMem(PRTSTTTBL, PRTSTTUNKNOWN);
+					debugSerial.println(A);
 				}
-				break;
-			default:
+			}
+			else if (newConf.mode >= 2){
+				switch (A){
+
+				case 'c': // set to confirmed
+					newConf.confMsk &= ~CM_UCNF;
+					break;
+				case 'u': // set to unconfirmed
+					newConf.confMsk |= CM_UCNF;
+					break;
+
+				case 'o': // set to otaa
+					newConf.confMsk |= CM_OTAA;
+					resetKeyBuffer();
+					break;
+				case 'a': // set to ABP
+					newConf.confMsk &= ~CM_OTAA;
+					resetKeyBuffer();
+					break;
+
+				case 'N': // Network session key for ABP
+					readSerialS(newConf.nwkSKey, KEYSIZE);
+					if (strlen(newConf.nwkSKey) < KEYSIZE){
+						printPrgMem(PRTSTTTBL, PRTSTTINVALID);
+						newConf.nwkSKey[0] = '\0';
+					}
+					break;
+
+				case 'A': // Application session key for ABP
+					readSerialS(newConf.appSKey, KEYSIZE);
+					if (strlen(newConf.appSKey) != KEYSIZE){
+						printPrgMem(PRTSTTTBL, PRTSTTINVALID);
+						newConf.appSKey[0] = '\0';
+					}
+					break;
+
+				case 'D': // Device address for ABP
+					readSerialS(newConf.devAddr, KEYSIZE/4);
+					if (strlen(newConf.devAddr) != KEYSIZE/4){
+						printPrgMem(PRTSTTTBL, PRTSTTINVALID);
+						newConf.devAddr[0] = '\0';
+					}
+					break;
+
+				case 'K': // Application Key for OTAA
+					readSerialS(newConf.appKey, KEYSIZE);
+					if (strlen(newConf.appKey) != KEYSIZE){
+						printPrgMem(PRTSTTTBL, PRTSTTINVALID);
+						newConf.appKey[0] = '\0';
+					}
+					break;
+
+				case 'E': // EUI address for OTAA
+					readSerialS(newConf.appEui, KEYSIZE/2);
+					if (strlen(newConf.appEui) != KEYSIZE/2){
+						printPrgMem(PRTSTTTBL, PRTSTTINVALID);
+						newConf.appEui[0] = '\0';
+					}
+					break;
+
+				case 'C':
+					newConf.chnMsk = readSerialH();
+					if (newConf.chnMsk < 0x01 || newConf.chnMsk > 0xFFFF ){ //TODO: this is limiting to EU868
+						printPrgMem(PRTSTTTBL, PRTSTTINVALID);
+						newConf.chnMsk = 0xFF; // set to default
+					}
+					break;
+
+				case 'd': // read data rate
+					newConf.dataRate = (uint8_t)readSerialD();
+					if (newConf.dataRate > 5 && newConf.dataRate != 255){ // we exclude 6 and 7 for now
+						printPrgMem(PRTSTTTBL, PRTSTTINVALID);
+						newConf.dataRate = 5; // set to default
+					}
+					break;
+
+				case 'x': // read window delay RX1
+					newConf.rxWindow1 = readSerialD();
+					if (newConf.rxWindow1 < 1000 || newConf.rxWindow1 > 15000){ // test range, min 1 sec .. defaults
+						printPrgMem(PRTSTTTBL, PRTSTTINVALID);
+						newConf.rxWindow1 = 1000; // set to default
+					}
+					break;
+
+				case 'y': // read window delay RX2
+					newConf.rxWindow2 = readSerialD();
+					if (newConf.rxWindow2 < 1000 + newConf.rxWindow1 || newConf.rxWindow2 > 15000 + newConf.rxWindow1){ // test range, min 2 sec .. defaults
+						printPrgMem(PRTSTTTBL, PRTSTTINVALID);
+						newConf.rxWindow2 = 2000; // set to default
+					}
+					break;
+
+				default:
+					printPrgMem(PRTSTTTBL, PRTSTTUNKNOWN);
+					debugSerial.println(A);
+				}
+			}
+			else{
 				printPrgMem(PRTSTTTBL, PRTSTTUNKNOWN);
 				debugSerial.println(A);
 			}
-
-		if (intp && newConf.mode >= 2)
-			switch (A){
-
-			case 'c': // set to confirmed
-				newConf.confMsk &= ~CM_UCNF;
-				break;
-			case 'u': // set to unconfirmed
-				newConf.confMsk |= CM_UCNF;
-				break;
-
-			case 'o': // set to otaa
-				newConf.confMsk |= CM_OTAA;
-				resetKeyBuffer();
-				break;
-			case 'a': // set to ABP
-				newConf.confMsk &= ~CM_OTAA;
-				resetKeyBuffer();
-				break;
-
-			case 'N': // Network session key for ABP
-				readSerialS(newConf.nwkSKey, KEYSIZE);
-				if (strlen(newConf.nwkSKey) < KEYSIZE){
-					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
-					newConf.nwkSKey[0] = '\0';
-				}
-				break;
-
-			case 'A': // Application session key for ABP
-				readSerialS(newConf.appSKey, KEYSIZE);
-				if (strlen(newConf.appSKey) != KEYSIZE){
-					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
-					newConf.appSKey[0] = '\0';
-				}
-				break;
-
-			case 'D': // Device address for ABP
-				readSerialS(newConf.devAddr, KEYSIZE/4);
-				if (strlen(newConf.devAddr) != KEYSIZE/4){
-					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
-					newConf.devAddr[0] = '\0';
-				}
-				break;
-
-			case 'K': // Application Key for OTAA
-				readSerialS(newConf.appKey, KEYSIZE);
-				if (strlen(newConf.appKey) != KEYSIZE){
-					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
-					newConf.appKey[0] = '\0';
-				}
-				break;
-
-			case 'E': // EUI address for OTAA
-				readSerialS(newConf.appEui, KEYSIZE/2);
-				if (strlen(newConf.appEui) != KEYSIZE/2){
-					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
-					newConf.appEui[0] = '\0';
-				}
-				break;
-
-			case 'C':
-				newConf.chnMsk = readSerialH();
-				if (newConf.chnMsk < 0x01 || newConf.chnMsk > 0xFFFF ){ //TODO: this is limiting to EU868
-					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
-					newConf.chnMsk = 0xFF; // set to default
-				}
-				break;
-
-			case 'd': // read data rate
-				newConf.dataRate = (uint8_t)readSerialD();
-				if (newConf.dataRate > 5 && newConf.dataRate != 255){ // we exclude 6 and 7 for now
-					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
-					newConf.dataRate = 5; // set to default
-				}
-				break;
-
-			case 'x': // read window delay RX1
-				newConf.rxWindow1 = readSerialD();
-				if (newConf.rxWindow1 < 1000 && newConf.rxWindow1 > 15000){ // test range, min 1 sec .. defaults
-					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
-					newConf.rxWindow1 = 1000; // set to default
-				}
-				break;
-
-			case 'y': // read window delay RX2
-				newConf.rxWindow2 = readSerialD();
-				if (newConf.rxWindow2 < 1000 + newConf.rxWindow1 && newConf.rxWindow2 > 15000 + newConf.rxWindow1){ // test range, min 2 sec .. defaults
-					printPrgMem(PRTSTTTBL, PRTSTTINVALID);
-					newConf.rxWindow2 = 2000; // set to default
-				}
-				break;
-
-			default:
-				printPrgMem(PRTSTTTBL, PRTSTTUNKNOWN);
-				debugSerial.println(A);
-			}
+		}
 	}
 
 }
