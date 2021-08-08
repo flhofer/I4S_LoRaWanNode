@@ -483,8 +483,12 @@ LoRaMgmtPoll(){
 				return 0;
 
 			internalState = iIdle;
-			return (TTN_SUCCESSFUL_RECEIVE == ret
-					|| TTN_SUCCESSFUL_TRANSMISSION == ret) ? 2 : -1; // Stop once received
+			if (TTN_SUCCESSFUL_RECEIVE == ret
+					|| TTN_SUCCESSFUL_TRANSMISSION == ret) {
+				trn->txCount++;
+				return 2; // Stop once received
+			}
+			return -1;
 		}
 		else{
 			internalState = iPoll;
