@@ -148,6 +148,8 @@ public:
   uint8_t getCR();
   uint32_t getFrequency();
   uint32_t getWatchDogTimer();
+  uint32_t getFCU();
+  uint32_t getFCD();
   enum ttn_modem_status_t getStatus();
   int8_t getPower();
   int8_t getRSSI();
@@ -182,5 +184,7 @@ public:
   bool setDR(uint8_t dr);
   bool setADR(bool adr);
   bool setRX1Delay(uint16_t delay);
+  bool setFCU(uint32_t fcu);
+  bool setFCD(uint32_t fcd);
 };
 #endif
