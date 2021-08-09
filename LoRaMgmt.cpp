@@ -43,6 +43,7 @@ static enum {	iIdle,
 				iBusy,
 				iChnWait,
 				iSleep,
+				iRndWait,
 			} internalState;
 
 /********************** HELPERS ************************/
@@ -453,14 +454,17 @@ int LoRaMgmtSend(){
 
 		pollcnt = 0;
 		trn->txCount++;
+		internalState = iBusy;
+
 		if ((ret == TTN_SUCCESSFUL_RECEIVE
 			|| ret == TTN_SUCCESSFUL_TRANSMISSION) && !(conf->confMsk & CM_UCNF)){
 			// message ACK received
+			if (conf->repeatSend == 0)
+				return 0; // If set to infinite, repeat send command until end
+
 			internalState = iIdle;
 			return 2;
 		}
-
-		internalState = iBusy;
 		return 1;
 	}
 	return 0;	// else busy
@@ -588,6 +592,8 @@ LoRaMgmtSetup(const sLoRaConfiguration_t * newConf,
 			ret = setupLoRaWan(newConf);
 			ret |= setChannelsCnf(newConf, 0, 5);
 			ret |= setChannels(newConf->chnMsk, newConf->dataRate);
+			if (newConf->repeatSend == 0)
+				internalState = iRndWait;
 	}
 	ret |= setTxPwr(newConf->mode, newConf->txPowerTst);
 	trn = result;
@@ -754,6 +760,14 @@ LoRaMgmtMain (){
 		{
 			uint32_t timeAir = computeAirTime(conf->dataLen, trn->txDR);
 			sleepMillis =  timeAir * 100 - timeAir; // This is for Channel 1-3, others * 1000
+		}
+		internalState = iSleep;
+		break;
+	case iRndWait:
+		startSleepTS = millis();
+		{
+			unsigned long rnd_contex = startSleepTS;
+			sleepMillis = rand_r(&rnd_contex) % conf->rxWindow2;
 		}
 		internalState = iSleep;
 		break;
