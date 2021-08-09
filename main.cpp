@@ -383,6 +383,7 @@ runTest(){
 			if ((ret = newConf.start()) < 0){
 				failed = 1;
 				tstate = rStop;
+				retries++;
 				printPrgMem(PRTSTTTBL, PRTSTTERREXEC);
 				printPrgMem(PRTSTTTBL, PRTSTTSTOP);
 				break;
