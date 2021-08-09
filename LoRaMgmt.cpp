@@ -31,6 +31,8 @@ static int	pollcnt;			// un-conf poll retries
 static uint32_t startSleepTS;	// relative MC time of Sleep begin
 static uint32_t startTestTS;	// relative MC time for test start
 static uint32_t sleepMillis;	// Time to remain in sleep
+static uint32_t fcu = 0;		// message up-counter
+static uint32_t fcd = 0;		// message down-counter
 
 static const sLoRaConfiguration_t * conf;	// Pointer to configuration entry
 static sLoRaResutls_t * trn;				// Pointer to actual entry
@@ -344,6 +346,9 @@ setupLoRaWan(const sLoRaConfiguration_t * const newConf){
 		ret |= !ttn.setRX1Delay(newConf->rxWindow1);
 	}	// set to LorIoT standard RX, DR = 0, not default
 
+	ret |= !ttn.setFCU(fcu);
+	ret |= !ttn.setFCD(fcd);
+
 	return ret *-1;
 }
 
@@ -632,6 +637,10 @@ LoRaMgmtGetResults(sLoRaResutls_t ** const res){
 		trn->txPwr = ttn.getPower();
 		trn->rxRssi = ttn.getRSSI();
 		trn->rxSnr = ttn.getSNR();
+
+		// update counters for next cycle
+		fcu = ttn.getFCU();
+		fcd = ttn.getFCD();
 	}
 	*res = trn++;// shift to next slot
 	return (ret == 0) ? 1 : -1;
@@ -665,7 +674,6 @@ LoRaMgmtUpdt(){
 //		(void)generatePayload(genbuf);
 
 		pollcnt = 0;
-
 		return 1;
 	}
 
