@@ -553,7 +553,7 @@ void readInput() {
 				newConf.mode = 0; // set to default
 			}
 			resetKeyBuffer();
-			newConf.confMsk &= ~CM_RJN;
+			newConf.confMsk = 0;
 			switch (newConf.mode)
 			{
 			default:
@@ -720,6 +720,10 @@ void readInput() {
 				case 'a': // set to ABP
 					newConf.confMsk &= ~CM_OTAA;
 					resetKeyBuffer();
+					break;
+
+				case 'n': // use no-reset
+					newConf.confMsk |= CM_NRST;
 					break;
 
 				case 'N': // Network session key for ABP

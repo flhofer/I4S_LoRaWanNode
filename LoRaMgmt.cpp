@@ -693,8 +693,9 @@ LoRaMgmtRcnf(){
 //		internalState = iPoll; // wait for a poll timer before continuing to next step
 //		if (conf)
 //			ttn.reset(1); // reset with adr on
-
-		return !LoRaMgmtSetup(conf, trn)? 1 :  -1;
+		if (conf->confMsk & CM_NRST)
+			return !LoRaMgmtSetup(conf, trn)? 1 :  -1;
+		return 1;
 	}
 	return 0;
 }

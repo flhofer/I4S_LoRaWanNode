@@ -13,10 +13,11 @@
 
 // Select frequency plan between TTN_FP_EU868 or TTN_FP_US915
 #define CM_OTAA			1		// LORAWAN use OTAA join instead of ABP
-#define CM_DTYCL		2		// LORAWAN enable duty cycle
+#define CM_DTYCL		2		// LORAWAN disable duty cycle
 #define CM_RJN	 		4		// LORAWAN rejoin if failed
 #define CM_UCNF			8		// LORAWAN use unconfirmed messages
 #define CM_NPBLK		16		// LORAWAN use not public network
+#define CM_NRST			32		// LORAWAN do not reset after successful send
 
 #define KEYSIZE			32		// 32
 
