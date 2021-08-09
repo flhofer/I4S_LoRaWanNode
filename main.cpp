@@ -651,9 +651,9 @@ void readInput() {
 			}
 			break;
 
-		case 'n': // disable debug print
-			debug = 0;
-			break;
+//		case 'n': // disable debug print
+//			debug = 0;
+//			break;
 		default:
 			intp = 1;
 		}
