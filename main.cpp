@@ -726,6 +726,10 @@ void readInput() {
 					newConf.confMsk |= CM_NRST;
 					break;
 
+				case 'f': // full-Airtime, use no duty cycle
+					newConf.confMsk |= CM_DTYCL;
+					break;
+
 				case 'N': // Network session key for ABP
 					readSerialS(newConf.nwkSKey, KEYSIZE);
 					if (strlen(newConf.nwkSKey) < KEYSIZE){
