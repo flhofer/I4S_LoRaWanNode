@@ -455,13 +455,12 @@ int LoRaMgmtSend(){
 		pollcnt = 0;
 		trn->txCount++;
 		internalState = iBusy;
+		if (conf->repeatSend == 0)
+			return 0; // If set to infinite, repeat send command until end
 
 		if ((ret == TTN_SUCCESSFUL_RECEIVE
 			|| ret == TTN_SUCCESSFUL_TRANSMISSION) && !(conf->confMsk & CM_UCNF)){
 			// message ACK received
-			if (conf->repeatSend == 0)
-				return 0; // If set to infinite, repeat send command until end
-
 			internalState = iIdle;
 			return 2;
 		}
