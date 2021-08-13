@@ -31,8 +31,6 @@ static int	pollcnt;			// un-conf poll retries
 static uint32_t startSleepTS;	// relative MC time of Sleep begin
 static uint32_t startTestTS;	// relative MC time for test start
 static uint32_t sleepMillis;	// Time to remain in sleep
-static uint32_t fcu = 0;		// message up-counter
-static uint32_t fcd = 0;		// message down-counter
 
 static const sLoRaConfiguration_t * conf;	// Pointer to configuration entry
 static sLoRaResutls_t * trn;				// Pointer to actual entry
@@ -320,6 +318,14 @@ setupLoRaWan(const sLoRaConfiguration_t * const newConf){
 	installTimer(); // setup timer1 registers
 
 	int ret = 0;
+	uint32_t fcu = 0;		// message up-counter
+	uint32_t fcd = 0;		// message down-counter
+
+	if (conf){ // not the first time
+		// update counters for next cycle
+		fcu = ttn.getFCU();
+		fcd = ttn.getFCD();
+	}
 
 	// Initialize Serial1
 	loraSerial.begin(57600);
@@ -643,10 +649,6 @@ LoRaMgmtGetResults(sLoRaResutls_t ** const res){
 		trn->txPwr = ttn.getPower();
 		trn->rxRssi = (uint8_t)abs(ttn.getRSSI());
 		trn->rxSnr = ttn.getSNR();
-
-		// update counters for next cycle
-		fcu = ttn.getFCU();
-		fcd = ttn.getFCD();
 	}
 	*res = trn++;// shift to next slot
 	return (ret == 0) ? 1 : -1;
