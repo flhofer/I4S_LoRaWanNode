@@ -80,7 +80,7 @@ typedef struct {
 	uint8_t  lastCR;		// Coding rate 4/x
 	uint8_t  txDR;			// Tx data rate
 	int8_t   txPwr;			// Tx power index used
-	int8_t   rxRssi;		// last rx RSSI, default -128
+	uint8_t   rxRssi;		// last rx RSSI, abs, default (-)255
 	int8_t   rxSnr;			// last rx SNR, default -128
 } sLoRaResutls_t;
 

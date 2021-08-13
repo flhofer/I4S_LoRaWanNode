@@ -456,12 +456,12 @@ int8_t TheThingsNetwork::getPower()
   return -128;
 }
 
-int8_t TheThingsNetwork::getRSSI()
+int16_t TheThingsNetwork::getRSSI()
 {
   if (readResponse(RADIO_TABLE, RADIO_TABLE, RADIO_GET_RSSI, buffer, sizeof(buffer)) > 0) {
     return atoi(buffer);
   }
-  return -128;
+  return -255;
 }
 
 int8_t TheThingsNetwork::getSNR()

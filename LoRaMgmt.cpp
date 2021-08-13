@@ -640,7 +640,7 @@ LoRaMgmtGetResults(sLoRaResutls_t ** const res){
 		trn->lastCR = ttn.getCR();
 		trn->txDR = ttn.getDR();
 		trn->txPwr = ttn.getPower();
-		trn->rxRssi = ttn.getRSSI();
+		trn->rxRssi = (uint8_t)abs(ttn.getRSSI());
 		trn->rxSnr = ttn.getSNR();
 
 		// update counters for next cycle
