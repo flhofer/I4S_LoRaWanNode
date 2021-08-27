@@ -321,11 +321,11 @@ setupLoRaWan(const sLoRaConfiguration_t * const newConf){
 	uint32_t fcu = 0;		// message up-counter
 	uint32_t fcd = 0;		// message down-counter
 
-	if (conf){ // not the first time
-		// update counters for next cycle
-		fcu = ttn.getFCU();
-		fcd = ttn.getFCD();
-	}
+	// update counters for next cycle
+	if (!(newConf->confMsk & CM_UCNF)) // wait for completion
+		_delay_ms(newConf->rxWindow2);
+	fcu = ttn.getFCU();
+	fcd = ttn.getFCD();
 
 	// Initialize Serial1
 	loraSerial.begin(57600);
