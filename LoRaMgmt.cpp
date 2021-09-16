@@ -323,7 +323,7 @@ setupLoRaWan(const sLoRaConfiguration_t * const newConf){
 
 	// update counters for next cycle
 	if (!(newConf->confMsk & CM_UCNF)) // wait for completion
-		_delay_ms(newConf->rxWindow2);
+		delay(newConf->rxWindow2);
 	fcu = ttn.getFCU();
 	fcd = ttn.getFCD();
 
@@ -459,7 +459,6 @@ int LoRaMgmtSend(){
 		}
 
 		pollcnt = 0;
-		trn->txCount++;
 		internalState = iBusy;
 		if (conf->repeatSend == 0)
 			return 0; // If set to infinite, repeat send command until end
@@ -467,7 +466,8 @@ int LoRaMgmtSend(){
 		if ((POLL_NO == 0 && (conf->confMsk & CM_UCNF))
 				|| ((ret == TTN_SUCCESSFUL_RECEIVE || ret == TTN_SUCCESSFUL_TRANSMISSION)
 						&& !(conf->confMsk & CM_UCNF))){
-			// message ACK received
+			// message ACK received or confirmed finished
+			trn->txCount++;
 			internalState = iIdle;
 			return 2;
 		}
