@@ -443,7 +443,11 @@ uint32_t TheThingsNetwork::getWatchDogTimer()
 enum ttn_modem_status_t TheThingsNetwork::getStatus()
 {
   if (readResponse(MAC_TABLE, MAC_GET_SET_TABLE, MAC_STATUS, buffer, sizeof(buffer)) > 0) {
-    return (enum ttn_modem_status_t)(strtol(buffer, NULL, 16) & 0x0F); // Mask out only active status
+	char **endptr = NULL;
+	int status = (strtol(buffer, endptr, 16) & 0x0F); // Mask out only active status
+
+	if (endptr == NULL)
+		return (enum ttn_modem_status_t)status;
   }
   return TTN_MDM_READERR; // unable to read status
 }
@@ -1279,13 +1283,13 @@ bool TheThingsNetwork::setRX1Delay(uint16_t delay){
 
 bool TheThingsNetwork::setFCU(uint32_t fcu){
   char buf[10];
-  sprintf(buf, "%u", fcu);
+  sprintf(buf, "%lu", fcu);
   return sendMacSet(MAC_UPCTR, buf);
 }
 
 bool TheThingsNetwork::setFCD(uint32_t fcd){
   char buf[10];
-  sprintf(buf, "%u", fcd);
+  sprintf(buf, "%lu", fcd);
   return sendMacSet(MAC_DNCTR, buf);
 }
 
@@ -1512,12 +1516,22 @@ void TheThingsNetwork::linkCheck(uint16_t seconds)
 
 uint8_t TheThingsNetwork::getLinkCheckGateways()
 {
-  readResponse(MAC_TABLE, MAC_GET_SET_TABLE, MAC_GWNB, buffer, sizeof(buffer));
-  return strtol(buffer, NULL, 10);
+  if (readResponse(MAC_TABLE, MAC_GET_SET_TABLE, MAC_GWNB, buffer, sizeof(buffer))){
+	  char **endptr = NULL;
+	  uint8_t gwnb = strtol(buffer, endptr, 10);
+	  if (endptr == NULL)
+		  return gwnb;
+  }
+  return 0; // Gateway number defaults to 0
 }
 
 uint8_t TheThingsNetwork::getLinkCheckMargin()
 {
-  readResponse(MAC_TABLE, MAC_GET_SET_TABLE, MAC_MRGN, buffer, sizeof(buffer));
-  return strtol(buffer, NULL, 10);
+  if (readResponse(MAC_TABLE, MAC_GET_SET_TABLE, MAC_MRGN, buffer, sizeof(buffer))){
+	  char **endptr = NULL;
+	  uint8_t mgn = strtol(buffer, endptr, 10);
+	  if (endptr == NULL)
+		  return mgn;
+  }
+  return 255; // Signal margin defaults to 255
 }
