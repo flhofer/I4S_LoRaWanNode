@@ -322,8 +322,6 @@ setupLoRaWan(const sLoRaConfiguration_t * const newConf){
 	uint32_t fcd = 0;		// message down-counter
 
 	// update counters for next cycle
-	if (!(newConf->confMsk & CM_UCNF)) // wait for completion
-		delay(newConf->rxWindow2);
 	fcu = ttn.getFCU();
 	fcd = ttn.getFCD();
 
