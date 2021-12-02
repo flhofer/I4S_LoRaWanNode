@@ -29,16 +29,32 @@ The used Arduino core is AVR 1.8.3 and the RN2483 module mounts a FW version 1.0
 
 The latest test software has been boiled down to a simple (non-interactive) menu. Once booted, the prompt `Select test:` asks for user input on the test to be executed.
 
+Generic Commands are
 ```
-'t' : test accompanied by a single digit number
-'g' : group accompanied by a capital test group letter
-'r' : run the test
+'m' : test mode of the node, between 0 and 4, 0 is off (See modes)
+'R' : run the test
+'S' : stop test execution
+'T' : print microcontroller type
+'I' : print modem identification number, =EUI
+'p' : set power index for tests accompanied by a digit number
+'l' : random data length to send, 0-242/255, depending on mode
+'r' : number of times to repeat a test
+```
+Other commands depend on the selected mode, `m`.
+
+For mode 1, plain LoRa packets, the options are the following
+```
+'f' : transmission frequency in 100kHz steps, number between 8630 and 8700. Default 8683(0000)Hz.
+'b' : bandwith in kHz, one in [250, 125, 62, 41, 31, 20, 15, 10]. Default 250kHz.
+'c' : code rate of the transmission, denominator value between 4/[5-8]. Default 8.
+'s' : spread factor to use in [7..12]. Default 12.
+```
+
+For mode 2, LoRaWan packet transmissions, the options are the following
+```
 'u' : set to unconfirmed test execution 
 'c' : set to confirmed test execution 
-'p' : set power index for tests accompanied by a digit number
 ```
 
-The codes can also be put together in the same string, with or without spaces. All letters after 'r' may be ignored. This setup has been devised to be used with an external logging script.
-
-
+The codes can also be put together in the same string, with or without spaces. All letters after 'R' may be ignored. This setup has been devised to be used with an external logging script.
  
