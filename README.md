@@ -1,6 +1,6 @@
 # I4S_LoRaWanNode
 
-The I4S* project investigates behavioral models of large scale LoRaWan networks used in smart contexts. This repository contains the micro-controller code for a _Harward architecture_ micro-controller for end-node testing. The AVR micro-controller performs regular transmissions in different configurations to test the performance of the network and the communication reliability. Transmission time samples will describe tbe behavior of the system and allow the creation of a model.
+The I4S* project investigates behavioral models of large scale LoRaWan networks used in smart contexts. This repository contains the micro-controller code for a _Harward architecture_ micro-controller for end-node testing. The AVR micro-controller performs regular transmissions in different configurations to test the performance of the network and the communication reliability. Transmission time samples will describe the behavior of the system and allow the creation of a model.
 
 This is just one component of the I4S family. To explore all components, browse through the repositories starting with 'I4S_'.
 
@@ -27,22 +27,31 @@ The used Arduino core is AVR 1.8.3 and the RN2483 module mounts a FW version 1.0
 
 ## Usage
 
-The latest test software has been boiled down to a simple (non-interactive) menu. Once booted, the prompt `Select test:` asks for user input on the test to be executed.
+The latest test software has been boiled down to a simple (non-interactive) menu. Once booted, the prompt `Select test:` asks for user input on the test to be executed. It does not parse carriage return or new line inputs and does not wait for input. This means the commands and corresponding values must be sent character by character within the serial's read timeout. For example, `m0` to set to mode 0, must be sent in one go with `0` sent within one serial timeout delay after `m`.
+
+The menu consists of generic commands, while specific commands depend on the chosen mode. Thus, before selecting those, we must select mode first.
 
 Generic Commands are
 ```
-'m' : test mode of the node, between 0 and 4, 0 is off (See modes)
+'m' : test mode of the node, between 0 and 4. Default 0 is off (See modes)
 'R' : run the test
 'S' : stop test execution
 'T' : print microcontroller type
 'I' : print modem identification number, =EUI
-'p' : set power index for tests accompanied by a digit number
-'l' : random data length to send, 0-242/255, depending on mode
-'r' : number of times to repeat a test
+'p' : set power index for tests accompanied by a digit number, [0..5], default 0.
+'l' : random data length to send, 0-242/255, depending on mode. Default 1.
+'r' : number of times to repeat a test, [0 to 100]. Default 5 repeats.
 ```
 Other commands depend on the selected mode, `m`.
 
-For mode 1, plain LoRa packets, the options are the following
+### Mode 0: Off
+
+In this mode, the device does nothing. Even though it reacts to 'R` run and `S` stop, there will be no output.
+
+### Mode 1: LoRa Transmissions (Disabled, STUB)
+For mode 1, plain LoRa packets, we start a continuous LoRa packet transmission with no breaks. It is intended as a simulation of interference signals. However, this mode is not implented for this MCU type.
+
+The options are the following:
 ```
 'f' : transmission frequency in 100kHz steps, number between 8630 and 8700. Default 8683(0000)Hz.
 'b' : bandwith in kHz, one in [250, 125, 62, 41, 31, 20, 15, 10]. Default 250kHz.
@@ -50,10 +59,39 @@ For mode 1, plain LoRa packets, the options are the following
 's' : spread factor to use in [7..12]. Default 12.
 ```
 
-For mode 2, LoRaWan packet transmissions, the options are the following
+### Mode 2: LoRaWan Transmissions
+the options are the following.
 ```
 'u' : set to unconfirmed test execution 
 'c' : set to confirmed test execution 
+'o' : set to OTAA mode join
+'a' : set to ABP mode join
+'n' : disable modem reset between tests
+'f' : full air-time, disable duty cycle
+'N' : Input Network session key ABP, 32 Hex characters, default NULL.
+'A' : Input Application session key ABP, 32 Hex characters, default NULL.
+'D' : Input device address ABP, 16 Hex charancters, default NULL.
+'K' : Input Application key OTAA, 32 Hex characters, default NULL.
+'E' : Input AppEUI address for OTAA, 32 Hex characters, default NULL.
+'C' : Select channel mask, 2 Hex characters, setting mask for 16 possible channels.
+'d' : set fixed data rate, [0-5,255]. Default 255, which is auto starting with DR5.
+'x' : set window delay in milliseconds [1000-15000]. Default 1000ms.
+```
+
+All keys and addresses, also the channel mask, are composed by hex strings. They may optionally be terminated by ending `h`.
+
+### Mode 3: LoRaWan with remote control
+
+Options for this mode are
+```
+
+```
+
+### Mode 4: LoRaWan join flood
+
+Options for this mode are
+```
+
 ```
 
 The codes can also be put together in the same string, with or without spaces. All letters after 'R' may be ignored. This setup has been devised to be used with an external logging script.
