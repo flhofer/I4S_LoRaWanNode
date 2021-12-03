@@ -73,9 +73,9 @@ The options are the following.
 'f' : full air-time, disable duty cycle
 'N' : Input Network session key ABP, 32 Hex characters, default NULL.
 'A' : Input Application session key ABP, 32 Hex characters, default NULL.
-'D' : Input device address ABP, 16 Hex characters, default NULL.
+'D' : Input device address ABP, 8 Hex characters, default NULL.
 'K' : Input Application key OTAA, 32 Hex characters, default NULL.
-'E' : Input AppEUI address for OTAA, 32 Hex characters, default NULL.
+'E' : Input device EUI address for OTAA, 16 Hex characters, default NULL.
 'C' : Select channel mask, 2 Hex characters, setting mask for 16 possible channels.
 'd' : set fixed data rate, [0-5,255]. Default 255, which is auto-starting with DR5.
 'x' : set window delay in milliseconds [1000-15000]. Default 1000ms.
