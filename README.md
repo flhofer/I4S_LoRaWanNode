@@ -46,7 +46,7 @@ Other commands depend on the selected mode, `m`.
 
 ### Mode 0: Off
 
-In this mode, the device does nothing. Even though it reacts to 'R` run and `S` stop, there will be no output.
+In this mode, the device does nothing. Even though it reacts to `R` run and `S` stop, there will be no output.
 
 ### Mode 1: LoRa Transmissions (Disabled, STUB)
 For mode 1, plain LoRa packets, we start a continuous LoRa packet transmission with no breaks. It is intended as a simulation of interference signals. However, this mode is not implented for this MCU type.
@@ -60,7 +60,10 @@ The options are the following:
 ```
 
 ### Mode 2: LoRaWan Transmissions
-the options are the following.
+
+This mode simulates LoRaWan transmissions with a specific interval. In particular, the transmissions repeat for `30` (hardcoded) times to execute measurements. If repeat is set greater than 0, an un-successful experiment is repeated that many times. If repeat is set to 0, the send continues until the `S` stop command is send.
+
+The options are the following.
 ```
 'u' : set to unconfirmed test execution 
 'c' : set to confirmed test execution 
@@ -78,21 +81,29 @@ the options are the following.
 'x' : set window delay in milliseconds [1000-15000]. Default 1000ms.
 ```
 
-All keys and addresses, also the channel mask, are composed by hex strings. They may optionally be terminated by ending `h`.
+All keys and addresses, also the channel mask, are composed by hex strings. They may optionally be terminated by ending `h`. The channel mask refers to the default Semtech channels 1..8 (Mask 0-7) and further 8 channels located on the 867MHz frequecy. 
 
 ### Mode 3: LoRaWan with remote control
 
-Options for this mode are
-```
-
-```
+This mode works the same way as mode 2, with the difference that we wait for a downlink command to start the experiment. Options for this mode are the same as for mode 2.
 
 ### Mode 4: LoRaWan join flood
 
-Options for this mode are
-```
+In this mode, no package send is performed. We only repeat the join sequence without pause. Options for this mode are the same as for mode 2. However, some options may have no effect.
 
+## Examples
+
+LoRa send
 ```
+m1f8650b125s7c5R
+```
+Sends plain LoRa signals with length 1, at 865.0MHz and Bandwith 125kHz, SF7 and code rate 4/5 until a `S` is supplied.
+
+LoRaWan send
+```
+m2acr5CFFhp1d255l5D01234567hN01234567890ABCDEF01234567890ABCDhA01234567890ABCDEF01234567890ABCDhR
+```
+This sets to mode2, confirmed sends on ABP and the set device and network and application key. Data length is set to 5, data rate automatic to 255. Repeat count to 5.
 
 The codes can also be put together in the same string, with or without spaces. All letters after 'R' may be ignored. This setup has been devised to be used with an external logging script.
  
